@@ -1,0 +1,207 @@
+[
+  {
+    "gate_id": "Gate 1",
+    "gate_name": "Pre-requisite Technical Criteria",
+    "gate_type": "binary",
+    "criterion_id": "I",
+    "name": "Vendor Registration",
+    "status": "PASS",
+    "matched_signals": [
+      "Valid National Tax Number (NTN)",
+      "Company Registration Certificate"
+    ],
+    "gap_signals": []
+  },
+  {
+    "gate_id": "Gate 1",
+    "gate_name": "Pre-requisite Technical Criteria",
+    "gate_type": "binary",
+    "criterion_id": "II",
+    "name": "Overseas Nationals",
+    "status": "PASS",
+    "matched_signals": [
+      "Certificate for travel to Pakistan"
+    ],
+    "gap_signals": []
+  },
+  {
+    "gate_id": "Gate 1",
+    "gate_name": "Pre-requisite Technical Criteria",
+    "gate_type": "binary",
+    "criterion_id": "III",
+    "name": "Audited Accounts",
+    "status": "PASS",
+    "matched_signals": [
+      "Audited accounts for a minimum of two financial years"
+    ],
+    "gap_signals": []
+  },
+  {
+    "gate_id": "Gate 1",
+    "gate_name": "Pre-requisite Technical Criteria",
+    "gate_type": "binary",
+    "criterion_id": "IV",
+    "name": "Blacklisting",
+    "status": "PASS",
+    "matched_signals": [
+      "Undertaking of not being blacklisted"
+    ],
+    "gap_signals": []
+  },
+  {
+    "gate_id": "Gate 1",
+    "gate_name": "Pre-requisite Technical Criteria",
+    "gate_type": "binary",
+    "criterion_id": "V",
+    "name": "Consortium",
+    "status": "FAIL",
+    "matched_signals": [
+      "Lead firm specified"
+    ],
+    "gap_signals": [
+      "Letter of partnership"
+    ]
+  },
+  {
+    "gate_id": "Gate 2",
+    "gate_name": "Technical Proposal",
+    "gate_type": "scored",
+    "criterion_id": "1",
+    "name": "Company Profile",
+    "status": "PRESENT",
+    "matched_signals": [
+      "Company profile"
+    ],
+    "gap_signals": [
+      "Key consortium members"
+    ],
+    "max_points": 0.0
+  },
+  {
+    "gate_id": "Gate 2",
+    "gate_name": "Technical Proposal",
+    "gate_type": "scored",
+    "criterion_id": "2",
+    "name": "Previous Experience",
+    "status": "PRESENT",
+    "matched_signals": [
+      "Description of previous experience"
+    ],
+    "gap_signals": [],
+    "max_points": 0.0
+  },
+  {
+    "gate_id": "Gate 2",
+    "gate_name": "Technical Proposal",
+    "gate_type": "scored",
+    "criterion_id": "3",
+    "name": "Understanding of Project Scope",
+    "status": "PRESENT",
+    "matched_signals": [
+      "Understanding of project scope"
+    ],
+    "gap_signals": [],
+    "max_points": 0.0
+  },
+  {
+    "gate_id": "Gate 2",
+    "gate_name": "Technical Proposal",
+    "gate_type": "scored",
+    "criterion_id": "4",
+    "name": "Methodology",
+    "status": "PRESENT",
+    "matched_signals": [
+      "Proposed methodology"
+    ],
+    "gap_signals": [],
+    "max_points": 0.0
+  },
+  {
+    "gate_id": "Gate 2",
+    "gate_name": "Technical Proposal",
+    "gate_type": "scored",
+    "criterion_id": "5",
+    "name": "Work Plan",
+    "status": "MISSING",
+    "matched_signals": [],
+    "gap_signals": [
+      "Detailed work plan"
+    ],
+    "max_points": 0.0
+  },
+  {
+    "gate_id": "Gate 3",
+    "gate_name": "Financial Proposal",
+    "gate_type": "scored",
+    "criterion_id": "1",
+    "name": "Pricing",
+    "status": "MISSING",
+    "matched_signals": [],
+    "gap_signals": [
+      "Fully comprehensive pricing"
+    ],
+    "max_points": 0.0
+  },
+  {
+    "gate_id": "Gate 3",
+    "gate_name": "Financial Proposal",
+    "gate_type": "scored",
+    "criterion_id": "2",
+    "name": "Financial Bid",
+    "status": "PRESENT",
+    "matched_signals": [
+      "Financial bid in-line with technical proposal"
+    ],
+    "gap_signals": [],
+    "max_points": 0.0
+  },
+  {
+    "gate_id": "technical_evaluation",
+    "gate_name": "Technical Evaluation",
+    "gate_type": "scored",
+    "criterion_id": "desk_review",
+    "name": "Desk Review of Proposal",
+    "score": 16.0,
+    "max_points": 40.0,
+    "matched_signals": [
+      "Past Experience of the firm or the consortium",
+      "Project team"
+    ],
+    "gap_signals": [
+      "Understanding of the project\u2019s scope of work",
+      "Proposed methodology and approach for policy development",
+      "Work plan and Deliverables"
+    ]
+  },
+  {
+    "gate_id": "technical_evaluation",
+    "gate_name": "Technical Evaluation",
+    "gate_type": "scored",
+    "criterion_id": "presentation",
+    "name": "Presentation",
+    "score": 30.0,
+    "max_points": 40.0,
+    "matched_signals": [
+      "Understanding of Project Scope",
+      "Past Experience",
+      "Methodology"
+    ],
+    "gap_signals": [
+      "Response to questions"
+    ]
+  },
+  {
+    "gate_id": "financial_evaluation",
+    "gate_name": "Financial Evaluation",
+    "gate_type": "scored",
+    "criterion_id": "financial_proposal",
+    "name": "Financial Proposal",
+    "score": 20.0,
+    "max_points": 20.0,
+    "matched_signals": [
+      "Cost reasonableness",
+      "Consistency with the technical proposal"
+    ],
+    "gap_signals": []
+  }
+]

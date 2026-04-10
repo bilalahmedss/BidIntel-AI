@@ -1,0 +1,263 @@
+{
+  "rfp_id": "RFP-168",
+  "issuer": "KARANDAAZ PAKISTAN",
+  "gates": [
+    {
+      "gate_id": "Gate 1",
+      "name": "Pre-requisite Technical Criteria",
+      "type": "binary",
+      "max_points": null,
+      "advancement_threshold": null,
+      "criteria": [
+        {
+          "id": "I",
+          "name": "Vendor Location and Registration",
+          "max_points": 0.0,
+          "checklist_signals": [
+            "Nationally or internationally based",
+            "Local partner or registered in Pakistan",
+            "Valid National Tax Number (NTN)",
+            "Company Registration Certificate"
+          ],
+          "evidence_required": [
+            "Certificate of registration",
+            "National Tax Number (NTN) certificate"
+          ]
+        },
+        {
+          "id": "II",
+          "name": "Team Composition",
+          "max_points": 0.0,
+          "checklist_signals": [
+            "No nationals, permanent residents, or people originating from India and/or Israel",
+            "Certificate for overseas nationals to travel to Pakistan"
+          ],
+          "evidence_required": [
+            "Certificate for overseas nationals"
+          ]
+        },
+        {
+          "id": "III",
+          "name": "Financial History",
+          "max_points": 0.0,
+          "checklist_signals": [
+            "Audited accounts and tax returns for a minimum of two financial years"
+          ],
+          "evidence_required": [
+            "Audited accounts",
+            "Tax returns"
+          ]
+        },
+        {
+          "id": "IV",
+          "name": "Blacklisting Status",
+          "max_points": 0.0,
+          "checklist_signals": [
+            "Not blacklisted within Pakistan or any other jurisdiction"
+          ],
+          "evidence_required": [
+            "Undertaking of not being blacklisted"
+          ]
+        },
+        {
+          "id": "V",
+          "name": "Consortium Requirements",
+          "max_points": 0.0,
+          "checklist_signals": [
+            "Lead firm specified",
+            "Letter of partnership included"
+          ],
+          "evidence_required": [
+            "Letter of partnership"
+          ]
+        }
+      ]
+    },
+    {
+      "gate_id": "Gate 2",
+      "name": "Technical Proposal Evaluation",
+      "type": "scored",
+      "max_points": null,
+      "advancement_threshold": null,
+      "criteria": [
+        {
+          "id": "1",
+          "name": "Company and Consortium Member Profiles",
+          "max_points": 0.0,
+          "checklist_signals": [
+            "Company profile",
+            "Profiles of key consortium members"
+          ],
+          "evidence_required": [
+            "Company profile document",
+            "Consortium member profiles"
+          ]
+        },
+        {
+          "id": "2",
+          "name": "Previous Experience",
+          "max_points": 0.0,
+          "checklist_signals": [
+            "Description of previous experience of similar and relevant assignments"
+          ],
+          "evidence_required": [
+            "Description of previous experience"
+          ]
+        },
+        {
+          "id": "3",
+          "name": "Understanding of Project Scope",
+          "max_points": 0.0,
+          "checklist_signals": [
+            "Understanding of the project's scope of work"
+          ],
+          "evidence_required": [
+            "Document showing understanding of project scope"
+          ]
+        },
+        {
+          "id": "4",
+          "name": "Proposed Methodology",
+          "max_points": 0.0,
+          "checklist_signals": [
+            "Proposed methodology in line with the scope"
+          ],
+          "evidence_required": [
+            "Methodology document"
+          ]
+        },
+        {
+          "id": "5",
+          "name": "Work Plan and Team",
+          "max_points": 0.0,
+          "checklist_signals": [
+            "Detailed work plan with deliverables and timelines",
+            "Project team with experts and their roles"
+          ],
+          "evidence_required": [
+            "Work plan document",
+            "Project team document"
+          ]
+        }
+      ]
+    },
+    {
+      "gate_id": "technical_evaluation",
+      "name": "Technical Evaluation",
+      "type": "scored",
+      "max_points": 80.0,
+      "advancement_threshold": 60.0,
+      "criteria": [
+        {
+          "id": "desk_review",
+          "name": "Desk Review of Proposal",
+          "max_points": 40.0,
+          "checklist_signals": [
+            "Understanding of the project\u2019s scope of work",
+            "Proposed methodology and approach for policy development",
+            "Past Experience of the firm or the consortium",
+            "Work plan and Deliverables",
+            "Project team"
+          ],
+          "evidence_required": []
+        },
+        {
+          "id": "presentation",
+          "name": "Presentation",
+          "max_points": 40.0,
+          "checklist_signals": [
+            "Understanding of Project Scope",
+            "Methodology",
+            "Past Experience",
+            "Response to questions"
+          ],
+          "evidence_required": []
+        }
+      ]
+    },
+    {
+      "gate_id": "financial_evaluation",
+      "name": "Financial Evaluation",
+      "type": "scored",
+      "max_points": 20.0,
+      "advancement_threshold": null,
+      "criteria": [
+        {
+          "id": "financial_proposal",
+          "name": "Financial Proposal",
+          "max_points": 20.0,
+          "checklist_signals": [
+            "Cost reasonableness",
+            "Consistency with the technical proposal"
+          ],
+          "evidence_required": [
+            "Budget in PKR inclusive of all taxes"
+          ]
+        }
+      ]
+    }
+  ],
+  "poison_pill_clauses": [
+    {
+      "id": "1",
+      "clause_text": "Failure to disclose conflict of interest may lead to disqualification or contract termination",
+      "page_number": 4,
+      "trigger_condition": "Failure to disclose conflict of interest",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": "2",
+      "clause_text": "Failure to disclose related party information may lead to disqualification or contract termination",
+      "page_number": 4,
+      "trigger_condition": "Failure to disclose related party information",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": "corrupt_practices",
+      "clause_text": "Karandaaz Pakistan shall not award the contract if it is determined that the bidder, or any of its personnel, or its agents, or its suppliers and/or their employees, has, directly or indirectly, engaged in corrupt, fraudulent, collusive, coercive, or obstructive practices in competing for the contract in question.",
+      "page_number": 14,
+      "trigger_condition": "Engagement in corrupt, fraudulent, collusive, coercive, or obstructive practices",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": "conflict_of_interest",
+      "clause_text": "Any bidder participating in the procurement process should disclose any actual or perceived conflict of interest situation/condition. Any bidder to have a conflict of interest shall be ineligible for award of a contract.",
+      "page_number": 15,
+      "trigger_condition": "Conflict of interest",
+      "severity": "HIGH"
+    },
+    {
+      "id": "",
+      "clause_text": "Any bidder to have a conflict of interest shall be ineligible for award of a contract.",
+      "page_number": 15,
+      "trigger_condition": "Conflict of interest",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": "",
+      "clause_text": "The bidder will not use funds provided under this Agreement, directly or indirectly, in support of activities (a) prohibited by US laws related to combatting terrorism",
+      "page_number": 16,
+      "trigger_condition": "Non-compliance with anti-terrorism laws",
+      "severity": "CRITICAL"
+    },
+    {
+      "id": "",
+      "clause_text": "Related Party Disclosure",
+      "page_number": 28,
+      "trigger_condition": "Yes answer to any of the questions #1-7",
+      "severity": "CRITICAL"
+    }
+  ],
+  "submission_rules": [
+    "Proposals must be submitted in English",
+    "Proposals must be submitted in hard copy and electronically",
+    "Financial proposal must be password-protected",
+    "Proposal must be signed and stamped by an authorized person",
+    "The bidder shall prepare and email a scanned copy of the documents comprising the proposal as specified in Clause 10, of Section 2 on its official letterhead.",
+    "Each document shall be signed by a person duly authorized to sign on behalf of the bidder and all pages of the proposal shall be initialled by the person or persons signing the proposal.",
+    "Pre-qualification documents",
+    "Technical Proposal",
+    "Financial Proposal"
+  ],
+  "wps_formula": "(P1/ P2) * 20"
+}

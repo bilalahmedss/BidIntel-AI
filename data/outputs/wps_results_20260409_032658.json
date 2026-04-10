@@ -1,0 +1,101 @@
+{
+  "conservative": {
+    "pq_gate": 0,
+    "gate_results": [
+      {
+        "gate_id": "Gate 1",
+        "name": "Pre-requisite Technical Criteria",
+        "type": "binary",
+        "passed": false
+      }
+    ],
+    "scenarios": {
+      "conservative": {
+        "wps": 0.0,
+        "phase_a": 0.0,
+        "phase_b": 0.0,
+        "financial_score": 0.0
+      },
+      "expected": {
+        "wps": 0.0,
+        "phase_a": 0.0,
+        "phase_b": 0.0,
+        "financial_score": 0.0
+      },
+      "optimistic": {
+        "wps": 0.0,
+        "phase_a": 0.0,
+        "phase_b": 0.0,
+        "financial_score": 0.0
+      }
+    },
+    "binding_constraint": "Failed binary gate Gate 1.",
+    "verdict": "DO NOT BID"
+  },
+  "expected": {
+    "pq_gate": 0,
+    "gate_results": [
+      {
+        "gate_id": "Gate 1",
+        "name": "Pre-requisite Technical Criteria",
+        "type": "binary",
+        "passed": false
+      }
+    ],
+    "scenarios": {
+      "conservative": {
+        "wps": 0.0,
+        "phase_a": 0.0,
+        "phase_b": 0.0,
+        "financial_score": 0.0
+      },
+      "expected": {
+        "wps": 0.0,
+        "phase_a": 0.0,
+        "phase_b": 0.0,
+        "financial_score": 0.0
+      },
+      "optimistic": {
+        "wps": 0.0,
+        "phase_a": 0.0,
+        "phase_b": 0.0,
+        "financial_score": 0.0
+      }
+    },
+    "binding_constraint": "Failed binary gate Gate 1.",
+    "verdict": "DO NOT BID"
+  },
+  "optimistic": {
+    "pq_gate": 0,
+    "gate_results": [
+      {
+        "gate_id": "Gate 1",
+        "name": "Pre-requisite Technical Criteria",
+        "type": "binary",
+        "passed": false
+      }
+    ],
+    "scenarios": {
+      "conservative": {
+        "wps": 0.0,
+        "phase_a": 0.0,
+        "phase_b": 0.0,
+        "financial_score": 0.0
+      },
+      "expected": {
+        "wps": 0.0,
+        "phase_a": 0.0,
+        "phase_b": 0.0,
+        "financial_score": 0.0
+      },
+      "optimistic": {
+        "wps": 0.0,
+        "phase_a": 0.0,
+        "phase_b": 0.0,
+        "financial_score": 0.0
+      }
+    },
+    "binding_constraint": "Failed binary gate Gate 1.",
+    "verdict": "DO NOT BID"
+  }
+}

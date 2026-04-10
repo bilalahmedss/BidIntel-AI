@@ -1,0 +1,170 @@
+[
+  {
+    "clause_text": "Failure to disclose conflict of interest may lead to disqualification or contract termination",
+    "page_number": 4,
+    "severity": "CRITICAL",
+    "reason": "Failure to disclose conflict of interest",
+    "source": "parser"
+  },
+  {
+    "clause_text": "Failure to disclose related party information may lead to disqualification or contract termination",
+    "page_number": 4,
+    "severity": "CRITICAL",
+    "reason": "Failure to disclose related party information",
+    "source": "parser"
+  },
+  {
+    "clause_text": "Karandaaz Pakistan shall not award the contract if it is determined that the bidder, or any of its personnel, or its agents, or its suppliers and/or their employees, has, directly or indirectly, engaged in corrupt, fraudulent, collusive, coercive, or obstructive practices in competing for the contract in question.",
+    "page_number": 14,
+    "severity": "CRITICAL",
+    "reason": "Engagement in corrupt, fraudulent, collusive, coercive, or obstructive practices",
+    "source": "parser"
+  },
+  {
+    "clause_text": "Any bidder participating in the procurement process should disclose any actual or perceived conflict of interest situation/condition. Any bidder to have a conflict of interest shall be ineligible for award of a contract.",
+    "page_number": 15,
+    "severity": "HIGH",
+    "reason": "Conflict of interest",
+    "source": "parser"
+  },
+  {
+    "clause_text": "Any bidder to have a conflict of interest shall be ineligible for award of a contract.",
+    "page_number": 15,
+    "severity": "CRITICAL",
+    "reason": "Conflict of interest",
+    "source": "parser"
+  },
+  {
+    "clause_text": "The bidder will not use funds provided under this Agreement, directly or indirectly, in support of activities (a) prohibited by US laws related to combatting terrorism",
+    "page_number": 16,
+    "severity": "CRITICAL",
+    "reason": "Non-compliance with anti-terrorism laws",
+    "source": "parser"
+  },
+  {
+    "clause_text": "Related Party Disclosure",
+    "page_number": 5,
+    "severity": "CRITICAL",
+    "reason": "Yes answer to any of the questions #1-7",
+    "source": "parser"
+  },
+  {
+    "clause_text": "In case of any conflict between the provisions of this RFP, the decision of the Purchaser shall be final regarding the overriding effect of the respective provision.",
+    "page_number": 2,
+    "severity": "HIGH",
+    "reason": "Imposes unfair sole discretion on the client",
+    "source": "sweep"
+  },
+  {
+    "clause_text": "Karandaaz will not allow sub-contracting under any circumstances.",
+    "page_number": 4,
+    "severity": "CRITICAL",
+    "reason": "ban on subcontracting",
+    "source": "sweep"
+  },
+  {
+    "clause_text": "Annexure B \u2013 Undertaking that the firm is not blacklisted",
+    "page_number": 5,
+    "severity": "CRITICAL",
+    "reason": "Automatic disqualification for blacklisted firms",
+    "source": "sweep"
+  },
+  {
+    "clause_text": "Nationals, Permanent residents or people originating from India and/or Israel must not be included in the proposed team even if they hold dual nationality and a passport from any other country.",
+    "page_number": 6,
+    "severity": "CRITICAL",
+    "reason": "Restricts nationality",
+    "source": "sweep"
+  },
+  {
+    "clause_text": "All differences arising out as above shall be fully borne by the successful bidder.",
+    "page_number": 7,
+    "severity": "CRITICAL",
+    "reason": "Imposes unlimited liability on the bidder for erroneous calculation of tax rates",
+    "source": "sweep"
+  },
+  {
+    "clause_text": "If the said bidder fails to provide a replacement key expert with equal or better qualifications, or if the reasons provided for the replacement or justification are not to the reasonable satisfaction of Karandaaz Pakistan, the proposal will be rejected at Karandaaz Pakistan\u2019s sole discretion.",
+    "page_number": 8,
+    "severity": "HIGH",
+    "reason": "Imposes unfair sole discretion on the client",
+    "source": "sweep"
+  },
+  {
+    "clause_text": "Any effort by a bidder to influence Karandaaz Pakistan in the examination, evaluation, comparison, and post-qualification of the proposal or contract award decision may result in the rejection of its bid.",
+    "page_number": 9,
+    "severity": "HIGH",
+    "reason": "Imposes unfair sole discretion on the client to reject a bid",
+    "source": "sweep"
+  },
+  {
+    "clause_text": "If the bidder does not accept the corrected amount, the proposal shall be rejected.",
+    "page_number": 12,
+    "severity": "MEDIUM",
+    "reason": "imposes unfair sole discretion on the client to reject the proposal",
+    "source": "sweep"
+  },
+  {
+    "clause_text": "Karandaaz Pakistan reserves the right to cancel the bidding process and to reject all bids or to accept or reject any bid, at any time prior to the award of contract, without thereby incurring any liability to the affected bidder or bidders or any obligation to inform the affected bidder or bidders of the grounds for Karandaaz Pakistan\u2019s action.",
+    "page_number": 13,
+    "severity": "HIGH",
+    "reason": "imposes unfair sole discretion on the client",
+    "source": "sweep"
+  },
+  {
+    "clause_text": "Any effort by the bidder to influence Karandaaz Pakistan in the examination, evaluation, comparison, post-qualification of the proposals, or contract award decisions will result in the rejection of its proposal.",
+    "page_number": 14,
+    "severity": "CRITICAL",
+    "reason": "Automatic disqualification of bidder for influencing the client",
+    "source": "sweep"
+  },
+  {
+    "clause_text": "36 Anti-Terrorism The bidder will not use funds provided under this Agreement, directly or indirectly, in support of activities (a) prohibited by US laws related to combatting terrorism (b) with or related to parties on the List of Specially Designated Nationals (www.treasury.gov/sdn); or (c) with or related to the countries against which the U.S. maintains a comprehensive embargo.",
+    "page_number": 16,
+    "severity": "CRITICAL",
+    "reason": "Restriction on nationality and activities related to terrorism",
+    "source": "sweep"
+  },
+  {
+    "clause_text": "Vendors that have successfully undertaken similar research studies, pricing strategy development, or ecosystem modeling exercises in Pakistan or comparable jurisdictions will be preferred.",
+    "page_number": 23,
+    "severity": "MEDIUM",
+    "reason": "Implies a potential restriction on nationality and experience, favoring vendors with local presence or experience in Pakistan",
+    "source": "sweep"
+  },
+  {
+    "clause_text": "\u2022 Individuals who are nationals, permanent residents of India or Israel, or who originate from India or Israel will not be engaged for the project team or project steering team.\n\u2022 Bidders which are based in India and/or Israel or in countries against which the U.S. maintains a comprehensive embargo are not eligible to participate in the RFP.",
+    "page_number": 24,
+    "severity": "CRITICAL",
+    "reason": "Restricts nationality and imposes eligibility criteria based on country of origin",
+    "source": "sweep"
+  },
+  {
+    "clause_text": "The contractor hereby confirms that it has not been involved and has no association in any manner what so ever related to any act of terrorism or terrorist organization(s)/person(s) listed in any country and also in NACTA Schedules I & IV lists for proscribed companies and individuals and UN terror list.",
+    "page_number": 25,
+    "severity": "CRITICAL",
+    "reason": "Restriction on bidder involvement with terrorism",
+    "source": "sweep"
+  },
+  {
+    "clause_text": "The Organization will immediately inform Karandaaz in case of any change in the status at any time hereinafter.",
+    "page_number": 26,
+    "severity": "MEDIUM",
+    "reason": "Implies sole discretion on the client to determine the bidder's eligibility",
+    "source": "sweep"
+  },
+  {
+    "clause_text": "if a conflict of interest is identified, your organization may be disqualified from the procurement process",
+    "page_number": 27,
+    "severity": "CRITICAL",
+    "reason": "automatic disqualification",
+    "source": "sweep"
+  },
+  {
+    "clause_text": "Note: If you have answered yes to any of the questions # 1 \u2013 7, please provide the following minimum information (Karandaaz Pakistan reserves the right to request additional information at its discretion).",
+    "page_number": 29,
+    "severity": "MEDIUM",
+    "reason": "Imposes unfair sole discretion on the client",
+    "source": "sweep"
+  }
+]

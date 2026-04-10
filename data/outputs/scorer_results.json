@@ -1,0 +1,233 @@
+{
+  "criterion_results": [
+    {
+      "gate_id": "Gate 1",
+      "gate_name": "Pre-requisite Technical Criteria",
+      "gate_type": "binary",
+      "criterion_id": "I",
+      "name": "Vendor Location and Registration",
+      "status": "PASS",
+      "matched_signals": [
+        "Nationally or internationally based",
+        "Local partner or registered in Pakistan",
+        "Valid National Tax Number (NTN)",
+        "Company Registration Certificate"
+      ],
+      "gap_signals": []
+    },
+    {
+      "gate_id": "Gate 1",
+      "gate_name": "Pre-requisite Technical Criteria",
+      "gate_type": "binary",
+      "criterion_id": "II",
+      "name": "Team Composition",
+      "status": "FAIL",
+      "matched_signals": [
+        "No nationals, permanent residents, or people originating from India and/or Israel"
+      ],
+      "gap_signals": [
+        "Certificate for overseas nationals to travel to Pakistan"
+      ]
+    },
+    {
+      "gate_id": "Gate 1",
+      "gate_name": "Pre-requisite Technical Criteria",
+      "gate_type": "binary",
+      "criterion_id": "III",
+      "name": "Financial History",
+      "status": "PASS",
+      "matched_signals": [
+        "Audited accounts and tax returns for a minimum of two financial years"
+      ],
+      "gap_signals": []
+    },
+    {
+      "gate_id": "Gate 1",
+      "gate_name": "Pre-requisite Technical Criteria",
+      "gate_type": "binary",
+      "criterion_id": "IV",
+      "name": "Blacklisting Status",
+      "status": "PASS",
+      "matched_signals": [
+        "Not blacklisted within Pakistan or any other jurisdiction"
+      ],
+      "gap_signals": []
+    },
+    {
+      "gate_id": "Gate 1",
+      "gate_name": "Pre-requisite Technical Criteria",
+      "gate_type": "binary",
+      "criterion_id": "V",
+      "name": "Consortium Requirements",
+      "status": "PASS",
+      "matched_signals": [
+        "Lead firm specified",
+        "Letter of partnership included"
+      ],
+      "gap_signals": []
+    },
+    {
+      "gate_id": "Gate 2",
+      "gate_name": "Technical Proposal Evaluation",
+      "gate_type": "scored",
+      "criterion_id": "1",
+      "name": "Company and Consortium Member Profiles",
+      "status": "PRESENT",
+      "matched_signals": [
+        "Company profile",
+        "Profiles of key consortium members"
+      ],
+      "gap_signals": [],
+      "max_points": 0.0
+    },
+    {
+      "gate_id": "Gate 2",
+      "gate_name": "Technical Proposal Evaluation",
+      "gate_type": "scored",
+      "criterion_id": "2",
+      "name": "Previous Experience",
+      "status": "PRESENT",
+      "matched_signals": [
+        "Description of previous experience of similar and relevant assignments"
+      ],
+      "gap_signals": [],
+      "max_points": 0.0
+    },
+    {
+      "gate_id": "Gate 2",
+      "gate_name": "Technical Proposal Evaluation",
+      "gate_type": "scored",
+      "criterion_id": "3",
+      "name": "Understanding of Project Scope",
+      "status": "PRESENT",
+      "matched_signals": [
+        "Understanding of the project's scope of work"
+      ],
+      "gap_signals": [],
+      "max_points": 0.0
+    },
+    {
+      "gate_id": "Gate 2",
+      "gate_name": "Technical Proposal Evaluation",
+      "gate_type": "scored",
+      "criterion_id": "4",
+      "name": "Proposed Methodology",
+      "status": "PRESENT",
+      "matched_signals": [
+        "Proposed methodology in line with the scope"
+      ],
+      "gap_signals": [],
+      "max_points": 0.0
+    },
+    {
+      "gate_id": "Gate 2",
+      "gate_name": "Technical Proposal Evaluation",
+      "gate_type": "scored",
+      "criterion_id": "5",
+      "name": "Work Plan and Team",
+      "status": "PRESENT",
+      "matched_signals": [
+        "Project team with experts and their roles"
+      ],
+      "gap_signals": [
+        "Detailed work plan with deliverables and timelines"
+      ],
+      "max_points": 0.0
+    },
+    {
+      "gate_id": "technical_evaluation",
+      "gate_name": "Technical Evaluation",
+      "gate_type": "scored",
+      "criterion_id": "desk_review",
+      "name": "Desk Review of Proposal",
+      "score": 24.0,
+      "max_points": 40.0,
+      "matched_signals": [
+        "Understanding of the project\u2019s scope of work",
+        "Past Experience of the firm or the consortium",
+        "Project team"
+      ],
+      "gap_signals": [
+        "Proposed methodology and approach for policy development",
+        "Work plan and Deliverables"
+      ]
+    },
+    {
+      "gate_id": "technical_evaluation",
+      "gate_name": "Technical Evaluation",
+      "gate_type": "scored",
+      "criterion_id": "presentation",
+      "name": "Presentation",
+      "score": 30.0,
+      "max_points": 40.0,
+      "matched_signals": [
+        "Understanding of Project Scope",
+        "Past Experience",
+        "Methodology"
+      ],
+      "gap_signals": [
+        "Response to questions"
+      ]
+    },
+    {
+      "gate_id": "financial_evaluation",
+      "gate_name": "Financial Evaluation",
+      "gate_type": "scored",
+      "criterion_id": "financial_proposal",
+      "name": "Financial Proposal",
+      "score": 20.0,
+      "max_points": 20.0,
+      "matched_signals": [
+        "Cost reasonableness",
+        "Consistency with the technical proposal"
+      ],
+      "gap_signals": []
+    }
+  ],
+  "gate_results": [
+    {
+      "gate_id": "Gate 1",
+      "gate_name": "Pre-requisite Technical Criteria",
+      "gate_type": "binary",
+      "status": "FAIL"
+    },
+    {
+      "gate_id": "Gate 2",
+      "gate_name": "Technical Proposal Evaluation",
+      "gate_type": "scored",
+      "score": 0.0,
+      "max_points": 0.0,
+      "checklist_present_count": 5,
+      "checklist_total_count": 5,
+      "advancement_threshold": null,
+      "status": "PASSED"
+    },
+    {
+      "gate_id": "technical_evaluation",
+      "gate_name": "Technical Evaluation",
+      "gate_type": "scored",
+      "score": 54.0,
+      "max_points": 80.0,
+      "checklist_present_count": 0,
+      "checklist_total_count": 0,
+      "advancement_threshold": 60.0,
+      "status": "ELIMINATED"
+    },
+    {
+      "gate_id": "financial_evaluation",
+      "gate_name": "Financial Evaluation",
+      "gate_type": "scored",
+      "score": 20.0,
+      "max_points": 20.0,
+      "checklist_present_count": 0,
+      "checklist_total_count": 0,
+      "advancement_threshold": null,
+      "status": "PASSED"
+    }
+  ],
+  "wps_summary": {
+    "wps": 0.0,
+    "verdict": "DO NOT BID",
+    "elimination_reason": "At least one binary gate contains FAIL criteria."
+  }
+}

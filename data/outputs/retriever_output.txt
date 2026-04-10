@@ -1,0 +1,663 @@
+QUERY: "past experience with payment systems"
+SOURCE FILE: past_projects.txt, sample_cv.txt, certifications.txt
+CHUNK 1: Nexus Advisory - Selected Completed Projects
+Sector Focus: Digital Financial Services, Payment Systems, Financial Inclusion
+
+Project 1: Merchant Discount Rate (MDR) Study and Policy Reform Options
+Client: Central Bank of Lumina (Southeast Asia) [fictionalized]
+Duration: 7 months (Completed)
+Contract Type: Technical Assistance - Strategy and Policy
+
+Background
+The central bank sought an evidence-based review of MDR structures to increase digital merchant acceptance without undermining provider sustainability. Merchant adoption had stagnated in non-metro areas, and market participants reported inconsistent pricing, low transparency, and weak incentives for small merchants.
+
+Objectives
+- Assess current MDR structures by channel (card-present, QR, account-to-account)
+- Quantify merchant economics by segment (micro, small, medium, large)
+- Evaluate consumer usage patterns and transaction-cost sensitivity
+- Recommend phased MDR reforms with risk mitigation and implementation sequencing
+
+Methodology
+- Review of central bank circulars, scheme rules, and provider pricing schedules
+- Analysis of transaction data across issuing/acquiring institutions
+- Structured interviews with banks, payment service providers, fintechs, and merchant associations
+- International benchmark review (peer ASEAN and emerging markets)
+- Scenario modeling for merchant growth and provider margin implications
+
+Key Deliverables
+- MDR baseline diagnostics and market segmentation report
+- Reform options paper with 3 phased policy pathways
+- Implementation roadmap with governance roles, timelines, and KPIs
+- Monitoring dashboard specification for post-reform tracking
+
+Outcomes
+- Central bank adopted a phased MDR approach for priority merchant categories
+- Policy package included transparency requirements and small-merchant onboarding incentives
+- Program implementation moved into regulatory consultation phase with broad stakeholder buy-in
+
+Relevance to RFP Signals
+- Demonstrated central bank project experience
+- Strong quantitative and qualitative research capability
+- Proven stakeholder engagement and policy drafting support
+- Clear implementation planning and results framework design
+
+--------------------------------------------------------------------------
+
+Project 2: Digital Payments Ecosystem Assessment
+Client: East Africa Inclusive Finance Initiative (Gates Foundation-funded) [fictionalized program title]
+Duration: 9 months (Completed)
+Contract Type: Advisory - Ecosystem and Program Design
+
+Background
+The program aimed to accelerate inclusive digital payments in underserved regions by identifying structural barriers across policy, infrastructure, business models, and user trust. The funder required actionable recommendations linked to implementation feasibility and measurable outcomes.
+
+Objectives
+- Map the end-to-end payments ecosystem across regulators, providers, agents, merchants, and end users
+- Diagnose constraints affecting rural and women-led microenterprise adoption
+- Assess interoperability readiness and acceptance infrastructure gaps
+- Define a practical intervention portfolio with budget envelopes and sequencing
+
+Methodology
+- Multi-country desk review and in-country consultation workshops
+- Stakeholder mapping and influence-interest analysis
+- Supply-side and demand-side data synthesis
+- Use-case walkthroughs (G2P, merchant payments, remittances, value chain payments)
+- Design of program M&E framework with baseline and target indicators
+
+Key Deliverables
+- Comprehensive ecosystem assessment report
+- Prioritized intervention portfolio and implementation sequencing plan
+- Risk register including regulatory, operational, and market risks
+- Program governance and accountability framework
+
+Outcomes
+- Program steering committee approved a two-year implementation package
+- Recommended interventions were integrated into annual work planning
+- M&E dashboard and reporting cadence institutionalized for donor and partner oversight
+
+Relevance to RFP Signals
+- Experience in donor-funded payment ecosystem diagnostics
+- Ability to work across public and private stakeholders
+- Strong inclusion lens and evidence-based policy recommendations
+- Delivery of actionable outputs: roadmaps, KPIs, and governance structures
+CHUNK 2: Candidate Profile: Senior Consultant - Digital Financial Services
+
+Name: Ayesha Rahman
+Current Role: Senior Consultant, Nexus Advisory
+Years of Experience: 12
+Nationality: Pakistani
+Email: ayesha.rahman@nexusadvisory.example
+Phone: +92-300-555-0147
+
+Professional Summary
+Ayesha Rahman is a digital financial services specialist with 12 years of experience in payment systems strategy, regulatory diagnostics, and implementation support for central banks, multilateral institutions, and government counterparts. Her work focuses on retail payments modernization, national payment switch interoperability, merchant acquiring expansion, and digital merchant acceptance economics (including MDR analysis). She has led multi-country assignments involving policy review, stakeholder consultation, data-led market assessments, and implementation roadmap design.
+
+Core Expertise
+- Retail payments ecosystem diagnostics
+- Instant payment system architecture and governance models
+- Merchant Discount Rate (MDR) studies and pricing reform options
+- Interoperability policy and scheme rule alignment
+- Agent banking and branchless banking channels
+- Financial inclusion and gender-intentional product design
+- Public-private stakeholder coordination
+- Monitoring and evaluation for payment system reforms
+
+Key Assignments
+1) State Bank of Pakistan (SBP) - Digital Payments Enablement Program (2021-2023)
+Role: Workstream Lead, Merchant Acceptance and Interoperability
+Scope:
+- Conducted baseline assessment of merchant acceptance across urban and peri-urban districts.
+- Mapped pain points in card, QR, and account-to-account rails.
+- Developed recommendations for interoperability incentives and phased MDR rationalization.
+- Supported SBP technical working group with consultation notes and implementation sequencing.
+Deliverables:
+- Diagnostic report (200+ pages) with market sizing and channel economics.
+- Policy options memo on MDR and merchant onboarding.
+- 18-month implementation roadmap with KPI framework.
+
+2) World Bank - Pakistan Digital Payments Advisory Support (2018-2020)
+Role: Senior Payments Consultant
+Scope:
+- Provided technical inputs on retail payments modernization.
+- Assessed governance arrangements for shared infrastructure and switching.
+- Designed stakeholder engagement process with banks, fintechs, PSOs/PSPs, and merchants.
+Deliverables:
+- Institutional capacity assessment.
+- Governance and risk matrix for implementation agency.
+- Prioritized action plan and procurement support notes.
+
+3) Central Bank of Kenya - National Retail Payment Interoperability (2016-2018)
+Role: Senior Analyst, Payments Policy
+Scope:
+- Reviewed payment rules and operating procedures for interoperability readiness.
+- Supported design of phased migration scenarios for interoperable merchant QR.
+- Facilitated bilateral sessions with regulators and market participants.
+Deliverables:
+- Readiness scorecard and gap analysis.
+- Change-management and stakeholder communication plan.
+
+4) Central Bank of Nigeria - Digital Payments Ecosystem Deep Dive (2013-2015)
+Role: Consultant
+Scope:
+- Conducted ecosystem diagnostic focusing on acceptance, trust, cost-to-serve, and consumer behavior.
+- Benchmarked policy levers used in peer markets.
+- Co-developed recommendations to improve acceptance in underserved geographies.
+Deliverables:
+- Ecosystem assessment with recommendations by segment.
+- M&E indicator framework aligned to policy objectives.
+
+Education
+- MSc, Development Economics, University of Manchester, UK
+- BBA, Institute of Business Administration (IBA), Karachi
+
+Selected Training
+- Certified Digital Finance Practitioner (CDFP) - Digital Frontiers Institute
+- Regulatory Impact Assessment (RIA) for Financial Sector Reform
+- Data Visualization for Policy and Program Delivery
+
+Languages
+- English (Fluent)
+- Urdu (Native)
+
+References
+Available upon request from Nexus Advisory client office.
+CHUNK 3: Nexus Advisory - Corporate Credentials and Compliance Documents (Summary)
+
+Legal Entity and Registration
+- Legal Name: Nexus Advisory (Private) Limited
+- Incorporation Jurisdiction: Pakistan
+- Registration Authority: Securities and Exchange Commission of Pakistan (SECP)
+- Company Registration Number: CUIN-0198475 (sample)
+- Registered Address: Suite 1204, Finance Tower, Islamabad, Pakistan
+- Operational Office: Karachi, Pakistan
+
+Tax Registration
+- National Tax Number (NTN): 7684521-3 (sample)
+- Sales Tax Registration: Active
+- Tax Compliance Status: Up to date as of latest annual filing cycle
+
+Quality and Management Systems
+- ISO 9001:2015 Certified
+- Certificate Number: PK-QMS-9001-NA-2247 (sample)
+- Scope: Consulting services in financial sector transformation, digital payments, and public policy advisory
+- Certification Body: Accredited third-party certifier
+- Current Status: Valid
+
+Audited Financials (Summary)
+Financial Year 2023 (FY2023)
+- Gross Revenue: PKR 412 million
+- Net Profit After Tax: PKR 61 million
+- Current Ratio: 1.84
+- Total Liabilities to Equity: 0.68
+- External Audit Opinion: Unqualified
+
+Financial Year 2024 (FY2024)
+- Gross Revenue: PKR 468 million
+- Net Profit After Tax: PKR 74 million
+- Current Ratio: 1.92
+- Total Liabilities to Equity: 0.63
+- External Audit Opinion: Unqualified
+
+Banking and Financial Standing
+- Primary Banking Relationship: AA-rated local commercial bank
+- Average operating liquidity maintained in line with contract obligations
+- No loan default history reported in management declarations
+
+Declarations
+- Non-Blacklisting Declaration:
+  Nexus Advisory declares that it has not been blacklisted, debarred, or suspended by any government agency, regulator, donor institution, or multilateral development partner in the last 10 years.
+- Conflict of Interest Declaration:
+  Nexus Advisory maintains internal policies requiring disclosure and mitigation of potential conflicts for all assignments.
+- Anti-Corruption and Ethics:
+  The firm follows a code of conduct and anti-bribery controls, including mandatory annual staff declarations.
+
+Supporting Documents Typically Provided at Proposal Stage
+- Certificate of Incorporation
+- NTN certificate and tax compliance records
+- ISO 9001 certificate copy
+- Audited financial statements for FY2023 and FY2024
+- Signed non-blacklisting and conflict-of-interest declarations
+
+---
+
+QUERY: "team qualifications and certifications"
+SOURCE FILE: certifications.txt, sample_cv.txt, past_projects.txt
+CHUNK 1: Nexus Advisory - Corporate Credentials and Compliance Documents (Summary)
+
+Legal Entity and Registration
+- Legal Name: Nexus Advisory (Private) Limited
+- Incorporation Jurisdiction: Pakistan
+- Registration Authority: Securities and Exchange Commission of Pakistan (SECP)
+- Company Registration Number: CUIN-0198475 (sample)
+- Registered Address: Suite 1204, Finance Tower, Islamabad, Pakistan
+- Operational Office: Karachi, Pakistan
+
+Tax Registration
+- National Tax Number (NTN): 7684521-3 (sample)
+- Sales Tax Registration: Active
+- Tax Compliance Status: Up to date as of latest annual filing cycle
+
+Quality and Management Systems
+- ISO 9001:2015 Certified
+- Certificate Number: PK-QMS-9001-NA-2247 (sample)
+- Scope: Consulting services in financial sector transformation, digital payments, and public policy advisory
+- Certification Body: Accredited third-party certifier
+- Current Status: Valid
+
+Audited Financials (Summary)
+Financial Year 2023 (FY2023)
+- Gross Revenue: PKR 412 million
+- Net Profit After Tax: PKR 61 million
+- Current Ratio: 1.84
+- Total Liabilities to Equity: 0.68
+- External Audit Opinion: Unqualified
+
+Financial Year 2024 (FY2024)
+- Gross Revenue: PKR 468 million
+- Net Profit After Tax: PKR 74 million
+- Current Ratio: 1.92
+- Total Liabilities to Equity: 0.63
+- External Audit Opinion: Unqualified
+
+Banking and Financial Standing
+- Primary Banking Relationship: AA-rated local commercial bank
+- Average operating liquidity maintained in line with contract obligations
+- No loan default history reported in management declarations
+
+Declarations
+- Non-Blacklisting Declaration:
+  Nexus Advisory declares that it has not been blacklisted, debarred, or suspended by any government agency, regulator, donor institution, or multilateral development partner in the last 10 years.
+- Conflict of Interest Declaration:
+  Nexus Advisory maintains internal policies requiring disclosure and mitigation of potential conflicts for all assignments.
+- Anti-Corruption and Ethics:
+  The firm follows a code of conduct and anti-bribery controls, including mandatory annual staff declarations.
+
+Supporting Documents Typically Provided at Proposal Stage
+- Certificate of Incorporation
+- NTN certificate and tax compliance records
+- ISO 9001 certificate copy
+- Audited financial statements for FY2023 and FY2024
+- Signed non-blacklisting and conflict-of-interest declarations
+CHUNK 2: Candidate Profile: Senior Consultant - Digital Financial Services
+
+Name: Ayesha Rahman
+Current Role: Senior Consultant, Nexus Advisory
+Years of Experience: 12
+Nationality: Pakistani
+Email: ayesha.rahman@nexusadvisory.example
+Phone: +92-300-555-0147
+
+Professional Summary
+Ayesha Rahman is a digital financial services specialist with 12 years of experience in payment systems strategy, regulatory diagnostics, and implementation support for central banks, multilateral institutions, and government counterparts. Her work focuses on retail payments modernization, national payment switch interoperability, merchant acquiring expansion, and digital merchant acceptance economics (including MDR analysis). She has led multi-country assignments involving policy review, stakeholder consultation, data-led market assessments, and implementation roadmap design.
+
+Core Expertise
+- Retail payments ecosystem diagnostics
+- Instant payment system architecture and governance models
+- Merchant Discount Rate (MDR) studies and pricing reform options
+- Interoperability policy and scheme rule alignment
+- Agent banking and branchless banking channels
+- Financial inclusion and gender-intentional product design
+- Public-private stakeholder coordination
+- Monitoring and evaluation for payment system reforms
+
+Key Assignments
+1) State Bank of Pakistan (SBP) - Digital Payments Enablement Program (2021-2023)
+Role: Workstream Lead, Merchant Acceptance and Interoperability
+Scope:
+- Conducted baseline assessment of merchant acceptance across urban and peri-urban districts.
+- Mapped pain points in card, QR, and account-to-account rails.
+- Developed recommendations for interoperability incentives and phased MDR rationalization.
+- Supported SBP technical working group with consultation notes and implementation sequencing.
+Deliverables:
+- Diagnostic report (200+ pages) with market sizing and channel economics.
+- Policy options memo on MDR and merchant onboarding.
+- 18-month implementation roadmap with KPI framework.
+
+2) World Bank - Pakistan Digital Payments Advisory Support (2018-2020)
+Role: Senior Payments Consultant
+Scope:
+- Provided technical inputs on retail payments modernization.
+- Assessed governance arrangements for shared infrastructure and switching.
+- Designed stakeholder engagement process with banks, fintechs, PSOs/PSPs, and merchants.
+Deliverables:
+- Institutional capacity assessment.
+- Governance and risk matrix for implementation agency.
+- Prioritized action plan and procurement support notes.
+
+3) Central Bank of Kenya - National Retail Payment Interoperability (2016-2018)
+Role: Senior Analyst, Payments Policy
+Scope:
+- Reviewed payment rules and operating procedures for interoperability readiness.
+- Supported design of phased migration scenarios for interoperable merchant QR.
+- Facilitated bilateral sessions with regulators and market participants.
+Deliverables:
+- Readiness scorecard and gap analysis.
+- Change-management and stakeholder communication plan.
+
+4) Central Bank of Nigeria - Digital Payments Ecosystem Deep Dive (2013-2015)
+Role: Consultant
+Scope:
+- Conducted ecosystem diagnostic focusing on acceptance, trust, cost-to-serve, and consumer behavior.
+- Benchmarked policy levers used in peer markets.
+- Co-developed recommendations to improve acceptance in underserved geographies.
+Deliverables:
+- Ecosystem assessment with recommendations by segment.
+- M&E indicator framework aligned to policy objectives.
+
+Education
+- MSc, Development Economics, University of Manchester, UK
+- BBA, Institute of Business Administration (IBA), Karachi
+
+Selected Training
+- Certified Digital Finance Practitioner (CDFP) - Digital Frontiers Institute
+- Regulatory Impact Assessment (RIA) for Financial Sector Reform
+- Data Visualization for Policy and Program Delivery
+
+Languages
+- English (Fluent)
+- Urdu (Native)
+
+References
+Available upon request from Nexus Advisory client office.
+CHUNK 3: Nexus Advisory - Selected Completed Projects
+Sector Focus: Digital Financial Services, Payment Systems, Financial Inclusion
+
+Project 1: Merchant Discount Rate (MDR) Study and Policy Reform Options
+Client: Central Bank of Lumina (Southeast Asia) [fictionalized]
+Duration: 7 months (Completed)
+Contract Type: Technical Assistance - Strategy and Policy
+
+Background
+The central bank sought an evidence-based review of MDR structures to increase digital merchant acceptance without undermining provider sustainability. Merchant adoption had stagnated in non-metro areas, and market participants reported inconsistent pricing, low transparency, and weak incentives for small merchants.
+
+Objectives
+- Assess current MDR structures by channel (card-present, QR, account-to-account)
+- Quantify merchant economics by segment (micro, small, medium, large)
+- Evaluate consumer usage patterns and transaction-cost sensitivity
+- Recommend phased MDR reforms with risk mitigation and implementation sequencing
+
+Methodology
+- Review of central bank circulars, scheme rules, and provider pricing schedules
+- Analysis of transaction data across issuing/acquiring institutions
+- Structured interviews with banks, payment service providers, fintechs, and merchant associations
+- International benchmark review (peer ASEAN and emerging markets)
+- Scenario modeling for merchant growth and provider margin implications
+
+Key Deliverables
+- MDR baseline diagnostics and market segmentation report
+- Reform options paper with 3 phased policy pathways
+- Implementation roadmap with governance roles, timelines, and KPIs
+- Monitoring dashboard specification for post-reform tracking
+
+Outcomes
+- Central bank adopted a phased MDR approach for priority merchant categories
+- Policy package included transparency requirements and small-merchant onboarding incentives
+- Program implementation moved into regulatory consultation phase with broad stakeholder buy-in
+
+Relevance to RFP Signals
+- Demonstrated central bank project experience
+- Strong quantitative and qualitative research capability
+- Proven stakeholder engagement and policy drafting support
+- Clear implementation planning and results framework design
+
+--------------------------------------------------------------------------
+
+Project 2: Digital Payments Ecosystem Assessment
+Client: East Africa Inclusive Finance Initiative (Gates Foundation-funded) [fictionalized program title]
+Duration: 9 months (Completed)
+Contract Type: Advisory - Ecosystem and Program Design
+
+Background
+The program aimed to accelerate inclusive digital payments in underserved regions by identifying structural barriers across policy, infrastructure, business models, and user trust. The funder required actionable recommendations linked to implementation feasibility and measurable outcomes.
+
+Objectives
+- Map the end-to-end payments ecosystem across regulators, providers, agents, merchants, and end users
+- Diagnose constraints affecting rural and women-led microenterprise adoption
+- Assess interoperability readiness and acceptance infrastructure gaps
+- Define a practical intervention portfolio with budget envelopes and sequencing
+
+Methodology
+- Multi-country desk review and in-country consultation workshops
+- Stakeholder mapping and influence-interest analysis
+- Supply-side and demand-side data synthesis
+- Use-case walkthroughs (G2P, merchant payments, remittances, value chain payments)
+- Design of program M&E framework with baseline and target indicators
+
+Key Deliverables
+- Comprehensive ecosystem assessment report
+- Prioritized intervention portfolio and implementation sequencing plan
+- Risk register including regulatory, operational, and market risks
+- Program governance and accountability framework
+
+Outcomes
+- Program steering committee approved a two-year implementation package
+- Recommended interventions were integrated into annual work planning
+- M&E dashboard and reporting cadence institutionalized for donor and partner oversight
+
+Relevance to RFP Signals
+- Experience in donor-funded payment ecosystem diagnostics
+- Ability to work across public and private stakeholders
+- Strong inclusion lens and evidence-based policy recommendations
+- Delivery of actionable outputs: roadmaps, KPIs, and governance structures
+
+---
+
+QUERY: "company registration and ISO certifications"
+SOURCE FILE: certifications.txt, past_projects.txt, sample_cv.txt
+CHUNK 1: Nexus Advisory - Corporate Credentials and Compliance Documents (Summary)
+
+Legal Entity and Registration
+- Legal Name: Nexus Advisory (Private) Limited
+- Incorporation Jurisdiction: Pakistan
+- Registration Authority: Securities and Exchange Commission of Pakistan (SECP)
+- Company Registration Number: CUIN-0198475 (sample)
+- Registered Address: Suite 1204, Finance Tower, Islamabad, Pakistan
+- Operational Office: Karachi, Pakistan
+
+Tax Registration
+- National Tax Number (NTN): 7684521-3 (sample)
+- Sales Tax Registration: Active
+- Tax Compliance Status: Up to date as of latest annual filing cycle
+
+Quality and Management Systems
+- ISO 9001:2015 Certified
+- Certificate Number: PK-QMS-9001-NA-2247 (sample)
+- Scope: Consulting services in financial sector transformation, digital payments, and public policy advisory
+- Certification Body: Accredited third-party certifier
+- Current Status: Valid
+
+Audited Financials (Summary)
+Financial Year 2023 (FY2023)
+- Gross Revenue: PKR 412 million
+- Net Profit After Tax: PKR 61 million
+- Current Ratio: 1.84
+- Total Liabilities to Equity: 0.68
+- External Audit Opinion: Unqualified
+
+Financial Year 2024 (FY2024)
+- Gross Revenue: PKR 468 million
+- Net Profit After Tax: PKR 74 million
+- Current Ratio: 1.92
+- Total Liabilities to Equity: 0.63
+- External Audit Opinion: Unqualified
+
+Banking and Financial Standing
+- Primary Banking Relationship: AA-rated local commercial bank
+- Average operating liquidity maintained in line with contract obligations
+- No loan default history reported in management declarations
+
+Declarations
+- Non-Blacklisting Declaration:
+  Nexus Advisory declares that it has not been blacklisted, debarred, or suspended by any government agency, regulator, donor institution, or multilateral development partner in the last 10 years.
+- Conflict of Interest Declaration:
+  Nexus Advisory maintains internal policies requiring disclosure and mitigation of potential conflicts for all assignments.
+- Anti-Corruption and Ethics:
+  The firm follows a code of conduct and anti-bribery controls, including mandatory annual staff declarations.
+
+Supporting Documents Typically Provided at Proposal Stage
+- Certificate of Incorporation
+- NTN certificate and tax compliance records
+- ISO 9001 certificate copy
+- Audited financial statements for FY2023 and FY2024
+- Signed non-blacklisting and conflict-of-interest declarations
+CHUNK 2: Nexus Advisory - Selected Completed Projects
+Sector Focus: Digital Financial Services, Payment Systems, Financial Inclusion
+
+Project 1: Merchant Discount Rate (MDR) Study and Policy Reform Options
+Client: Central Bank of Lumina (Southeast Asia) [fictionalized]
+Duration: 7 months (Completed)
+Contract Type: Technical Assistance - Strategy and Policy
+
+Background
+The central bank sought an evidence-based review of MDR structures to increase digital merchant acceptance without undermining provider sustainability. Merchant adoption had stagnated in non-metro areas, and market participants reported inconsistent pricing, low transparency, and weak incentives for small merchants.
+
+Objectives
+- Assess current MDR structures by channel (card-present, QR, account-to-account)
+- Quantify merchant economics by segment (micro, small, medium, large)
+- Evaluate consumer usage patterns and transaction-cost sensitivity
+- Recommend phased MDR reforms with risk mitigation and implementation sequencing
+
+Methodology
+- Review of central bank circulars, scheme rules, and provider pricing schedules
+- Analysis of transaction data across issuing/acquiring institutions
+- Structured interviews with banks, payment service providers, fintechs, and merchant associations
+- International benchmark review (peer ASEAN and emerging markets)
+- Scenario modeling for merchant growth and provider margin implications
+
+Key Deliverables
+- MDR baseline diagnostics and market segmentation report
+- Reform options paper with 3 phased policy pathways
+- Implementation roadmap with governance roles, timelines, and KPIs
+- Monitoring dashboard specification for post-reform tracking
+
+Outcomes
+- Central bank adopted a phased MDR approach for priority merchant categories
+- Policy package included transparency requirements and small-merchant onboarding incentives
+- Program implementation moved into regulatory consultation phase with broad stakeholder buy-in
+
+Relevance to RFP Signals
+- Demonstrated central bank project experience
+- Strong quantitative and qualitative research capability
+- Proven stakeholder engagement and policy drafting support
+- Clear implementation planning and results framework design
+
+--------------------------------------------------------------------------
+
+Project 2: Digital Payments Ecosystem Assessment
+Client: East Africa Inclusive Finance Initiative (Gates Foundation-funded) [fictionalized program title]
+Duration: 9 months (Completed)
+Contract Type: Advisory - Ecosystem and Program Design
+
+Background
+The program aimed to accelerate inclusive digital payments in underserved regions by identifying structural barriers across policy, infrastructure, business models, and user trust. The funder required actionable recommendations linked to implementation feasibility and measurable outcomes.
+
+Objectives
+- Map the end-to-end payments ecosystem across regulators, providers, agents, merchants, and end users
+- Diagnose constraints affecting rural and women-led microenterprise adoption
+- Assess interoperability readiness and acceptance infrastructure gaps
+- Define a practical intervention portfolio with budget envelopes and sequencing
+
+Methodology
+- Multi-country desk review and in-country consultation workshops
+- Stakeholder mapping and influence-interest analysis
+- Supply-side and demand-side data synthesis
+- Use-case walkthroughs (G2P, merchant payments, remittances, value chain payments)
+- Design of program M&E framework with baseline and target indicators
+
+Key Deliverables
+- Comprehensive ecosystem assessment report
+- Prioritized intervention portfolio and implementation sequencing plan
+- Risk register including regulatory, operational, and market risks
+- Program governance and accountability framework
+
+Outcomes
+- Program steering committee approved a two-year implementation package
+- Recommended interventions were integrated into annual work planning
+- M&E dashboard and reporting cadence institutionalized for donor and partner oversight
+
+Relevance to RFP Signals
+- Experience in donor-funded payment ecosystem diagnostics
+- Ability to work across public and private stakeholders
+- Strong inclusion lens and evidence-based policy recommendations
+- Delivery of actionable outputs: roadmaps, KPIs, and governance structures
+CHUNK 3: Candidate Profile: Senior Consultant - Digital Financial Services
+
+Name: Ayesha Rahman
+Current Role: Senior Consultant, Nexus Advisory
+Years of Experience: 12
+Nationality: Pakistani
+Email: ayesha.rahman@nexusadvisory.example
+Phone: +92-300-555-0147
+
+Professional Summary
+Ayesha Rahman is a digital financial services specialist with 12 years of experience in payment systems strategy, regulatory diagnostics, and implementation support for central banks, multilateral institutions, and government counterparts. Her work focuses on retail payments modernization, national payment switch interoperability, merchant acquiring expansion, and digital merchant acceptance economics (including MDR analysis). She has led multi-country assignments involving policy review, stakeholder consultation, data-led market assessments, and implementation roadmap design.
+
+Core Expertise
+- Retail payments ecosystem diagnostics
+- Instant payment system architecture and governance models
+- Merchant Discount Rate (MDR) studies and pricing reform options
+- Interoperability policy and scheme rule alignment
+- Agent banking and branchless banking channels
+- Financial inclusion and gender-intentional product design
+- Public-private stakeholder coordination
+- Monitoring and evaluation for payment system reforms
+
+Key Assignments
+1) State Bank of Pakistan (SBP) - Digital Payments Enablement Program (2021-2023)
+Role: Workstream Lead, Merchant Acceptance and Interoperability
+Scope:
+- Conducted baseline assessment of merchant acceptance across urban and peri-urban districts.
+- Mapped pain points in card, QR, and account-to-account rails.
+- Developed recommendations for interoperability incentives and phased MDR rationalization.
+- Supported SBP technical working group with consultation notes and implementation sequencing.
+Deliverables:
+- Diagnostic report (200+ pages) with market sizing and channel economics.
+- Policy options memo on MDR and merchant onboarding.
+- 18-month implementation roadmap with KPI framework.
+
+2) World Bank - Pakistan Digital Payments Advisory Support (2018-2020)
+Role: Senior Payments Consultant
+Scope:
+- Provided technical inputs on retail payments modernization.
+- Assessed governance arrangements for shared infrastructure and switching.
+- Designed stakeholder engagement process with banks, fintechs, PSOs/PSPs, and merchants.
+Deliverables:
+- Institutional capacity assessment.
+- Governance and risk matrix for implementation agency.
+- Prioritized action plan and procurement support notes.
+
+3) Central Bank of Kenya - National Retail Payment Interoperability (2016-2018)
+Role: Senior Analyst, Payments Policy
+Scope:
+- Reviewed payment rules and operating procedures for interoperability readiness.
+- Supported design of phased migration scenarios for interoperable merchant QR.
+- Facilitated bilateral sessions with regulators and market participants.
+Deliverables:
+- Readiness scorecard and gap analysis.
+- Change-management and stakeholder communication plan.
+
+4) Central Bank of Nigeria - Digital Payments Ecosystem Deep Dive (2013-2015)
+Role: Consultant
+Scope:
+- Conducted ecosystem diagnostic focusing on acceptance, trust, cost-to-serve, and consumer behavior.
+- Benchmarked policy levers used in peer markets.
+- Co-developed recommendations to improve acceptance in underserved geographies.
+Deliverables:
+- Ecosystem assessment with recommendations by segment.
+- M&E indicator framework aligned to policy objectives.
+
+Education
+- MSc, Development Economics, University of Manchester, UK
+- BBA, Institute of Business Administration (IBA), Karachi
+
+Selected Training
+- Certified Digital Finance Practitioner (CDFP) - Digital Frontiers Institute
+- Regulatory Impact Assessment (RIA) for Financial Sector Reform
+- Data Visualization for Policy and Program Delivery
+
+Languages
+- English (Fluent)
+- Urdu (Native)
+
+References
+Available upon request from Nexus Advisory client office.

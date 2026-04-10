@@ -1,0 +1,81 @@
+Candidate Profile: Senior Consultant - Digital Financial Services
+
+Name: Ayesha Rahman
+Current Role: Senior Consultant, Nexus Advisory
+Years of Experience: 12
+Nationality: Pakistani
+Email: ayesha.rahman@nexusadvisory.example
+Phone: +92-300-555-0147
+
+Professional Summary
+Ayesha Rahman is a digital financial services specialist with 12 years of experience in payment systems strategy, regulatory diagnostics, and implementation support for central banks, multilateral institutions, and government counterparts. Her work focuses on retail payments modernization, national payment switch interoperability, merchant acquiring expansion, and digital merchant acceptance economics (including MDR analysis). She has led multi-country assignments involving policy review, stakeholder consultation, data-led market assessments, and implementation roadmap design.
+
+Core Expertise
+- Retail payments ecosystem diagnostics
+- Instant payment system architecture and governance models
+- Merchant Discount Rate (MDR) studies and pricing reform options
+- Interoperability policy and scheme rule alignment
+- Agent banking and branchless banking channels
+- Financial inclusion and gender-intentional product design
+- Public-private stakeholder coordination
+- Monitoring and evaluation for payment system reforms
+
+Key Assignments
+1) State Bank of Pakistan (SBP) - Digital Payments Enablement Program (2021-2023)
+Role: Workstream Lead, Merchant Acceptance and Interoperability
+Scope:
+- Conducted baseline assessment of merchant acceptance across urban and peri-urban districts.
+- Mapped pain points in card, QR, and account-to-account rails.
+- Developed recommendations for interoperability incentives and phased MDR rationalization.
+- Supported SBP technical working group with consultation notes and implementation sequencing.
+Deliverables:
+- Diagnostic report (200+ pages) with market sizing and channel economics.
+- Policy options memo on MDR and merchant onboarding.
+- 18-month implementation roadmap with KPI framework.
+
+2) World Bank - Pakistan Digital Payments Advisory Support (2018-2020)
+Role: Senior Payments Consultant
+Scope:
+- Provided technical inputs on retail payments modernization.
+- Assessed governance arrangements for shared infrastructure and switching.
+- Designed stakeholder engagement process with banks, fintechs, PSOs/PSPs, and merchants.
+Deliverables:
+- Institutional capacity assessment.
+- Governance and risk matrix for implementation agency.
+- Prioritized action plan and procurement support notes.
+
+3) Central Bank of Kenya - National Retail Payment Interoperability (2016-2018)
+Role: Senior Analyst, Payments Policy
+Scope:
+- Reviewed payment rules and operating procedures for interoperability readiness.
+- Supported design of phased migration scenarios for interoperable merchant QR.
+- Facilitated bilateral sessions with regulators and market participants.
+Deliverables:
+- Readiness scorecard and gap analysis.
+- Change-management and stakeholder communication plan.
+
+4) Central Bank of Nigeria - Digital Payments Ecosystem Deep Dive (2013-2015)
+Role: Consultant
+Scope:
+- Conducted ecosystem diagnostic focusing on acceptance, trust, cost-to-serve, and consumer behavior.
+- Benchmarked policy levers used in peer markets.
+- Co-developed recommendations to improve acceptance in underserved geographies.
+Deliverables:
+- Ecosystem assessment with recommendations by segment.
+- M&E indicator framework aligned to policy objectives.
+
+Education
+- MSc, Development Economics, University of Manchester, UK
+- BBA, Institute of Business Administration (IBA), Karachi
+
+Selected Training
+- Certified Digital Finance Practitioner (CDFP) - Digital Frontiers Institute
+- Regulatory Impact Assessment (RIA) for Financial Sector Reform
+- Data Visualization for Policy and Program Delivery
+
+Languages
+- English (Fluent)
+- Urdu (Native)
+
+References
+Available upon request from Nexus Advisory client office.
