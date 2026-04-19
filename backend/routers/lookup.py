@@ -10,7 +10,7 @@ from backend.deps import get_current_user
 
 router = APIRouter()
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[2]
 BRAIN_DIR = ROOT / "data" / "company_brain"
 BRAIN_DIR.mkdir(parents=True, exist_ok=True)
 
