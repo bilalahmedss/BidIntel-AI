@@ -50,6 +50,7 @@ BidIntel-AI/
 │       └── lookup.py         # Knowledge base upload/delete/search
 │
 ├── ingestion/
+│   ├── pdf_utils.py          # PDF text extraction: text-layer first, OCR fallback
 │   ├── rfp_parser.py         # PDF → structured JSON via Groq (chunked)
 │   ├── response_loader.py    # Bid response PDF → ephemeral ChromaDB index
 │   └── kb_loader.py          # Company docs → persistent ChromaDB index
@@ -126,6 +127,51 @@ FRONTEND_ORIGIN=http://localhost:5173
 pip install -r requirements-backend.txt
 pip install pymupdf chromadb llama-index llama-index-vector-stores-chroma sentence-transformers
 ```
+
+#### OCR for scanned PDFs (optional but recommended)
+
+The app automatically falls back to Tesseract OCR for pages where PyMuPDF finds no text (scanned/image-based PDFs). Without Tesseract, scanned pages are skipped silently — text-layer PDFs are unaffected.
+
+**Windows:**
+1. Download and run the installer from [UB Mannheim](https://github.com/UB-Mannheim/tesseract/wiki) (includes English by default)
+2. Set the path in `.env`:
+   ```env
+   TESSERACT_CMD=C:/Program Files/Tesseract-OCR/tesseract.exe
+   ```
+
+**Linux/Mac:**
+```bash
+sudo apt install tesseract-ocr   # Ubuntu/Debian
+brew install tesseract           # macOS
+```
+
+The Python wrapper (`pytesseract`, `Pillow`) is already in `requirements-backend.txt`.
+
+To verify your setup and see per-page extraction details for any PDF:
+
+```bash
+python tests/test_ocr.py                        # all PDFs in repo root
+python tests/test_ocr.py path/to/rfp.pdf        # specific file
+python tests/test_ocr.py path/to/rfp.pdf --no-ocr  # text layer only
+```
+
+Example output:
+```
+File : SMEDA Bid Response.pdf  |  358 pages
+
+  Page  74  [TEXT   ]   744 chars  |  Appendix D – Special Conditions ...
+  Page  75  [OCR    ]  1967 chars  |  TECHNICAL PROPOSAL SUBMISSION FORM ...
+  Page  76  [TEXT   ]  3169 chars  |  FORM TECH-4: DESCRIPTION OF APPROACH ...
+
+Summary
+  Text-layer pages : 355
+  OCR pages        : 3
+  Empty pages      : 0
+  Total chars      : 612,450
+  Time             : 18.4s
+```
+
+`[TEXT]` = digital PDF (fast), `[OCR]` = scanned page run through Tesseract, `[EMPTY]` = blank page.
 
 ### 3. Install frontend dependencies
 
@@ -267,6 +313,7 @@ SQLite with WAL mode. The database is created automatically at `data/bidintel.db
 | `GROQ_API_KEY` | Yes | Groq API key for all LLM calls |
 | `JWT_SECRET_KEY` | Yes | Secret for signing JWT tokens — use a long random string in production |
 | `FRONTEND_ORIGIN` | Yes | Frontend URL for CORS (`http://localhost:5173` in dev) |
+| `TESSERACT_CMD` | No | Full path to the Tesseract binary (only needed if Tesseract isn't on PATH) |
 
 ---
 

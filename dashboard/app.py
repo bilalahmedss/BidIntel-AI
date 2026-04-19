@@ -14,7 +14,8 @@ if project_root not in sys.path:
 import time
 
 import streamlit as st
-import fitz  # pymupdf
+from ingestion.pdf_utils import extract_pdf_pages, extract_page_text
+import fitz
 
 from ingestion.rfp_parser import parse_rfp_pdf
 from ingestion.response_loader import build_response_index
@@ -25,11 +26,7 @@ from scoring.wps_calculator import calculate_wps
 
 
 def extract_raw_pages(pdf_path: str):
-    pages = []
-    with fitz.open(pdf_path) as doc:
-        for i, page in enumerate(doc, start=1):
-            pages.append({"page_number": i, "text": page.get_text() or ""})
-    return pages
+    return extract_pdf_pages(pdf_path)
 
 
 def verdict_color(verdict: str) -> str:

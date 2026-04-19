@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any, List
 
 import chromadb
-import fitz  # pymupdf
+from ingestion.pdf_utils import extract_pdf_pages
 from dotenv import load_dotenv
 from llama_index.core import Document, Settings, StorageContext, VectorStoreIndex
 from llama_index.core.base.embeddings.base import BaseEmbedding
@@ -56,13 +56,12 @@ def build_response_index(pdf_path: str) -> VectorStoreIndex:
         raise FileNotFoundError(f"Response PDF not found: {pdf_path}")
 
     documents: List[Document] = []
-    with fitz.open(pdf_path) as doc:
-        for i, page in enumerate(doc, start=1):
-            text = (page.get_text() or "").strip()
-            if not text:
-                continue
-            for chunk in _chunk_text(text):
-                documents.append(Document(text=chunk, metadata={"page": i, "source": "bid_response"}))
+    for p in extract_pdf_pages(pdf_path):
+        text = p["text"].strip()
+        if not text:
+            continue
+        for chunk in _chunk_text(text):
+            documents.append(Document(text=chunk, metadata={"page": p["page_number"], "source": "bid_response"}))
 
     if not documents:
         raise ValueError("No extractable text found in bid response PDF.")

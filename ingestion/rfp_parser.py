@@ -4,8 +4,8 @@ import os
 import re
 from typing import Any, Callable, Dict, List, Optional
 
-import fitz  # pymupdf
 from groq import Groq
+from ingestion.pdf_utils import extract_pdf_pages
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -91,10 +91,7 @@ class RFPParser:
     def _extract_pdf_pages(self, pdf_path: str) -> List[Dict[str, Any]]:
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(f"PDF file not found: {pdf_path}")
-        pages: List[Dict[str, Any]] = []
-        with fitz.open(pdf_path) as doc:
-            for i, page in enumerate(doc, start=1):
-                pages.append({"page_number": i, "text": page.get_text() or ""})
+        pages = extract_pdf_pages(pdf_path)
         return pages
 
     def parse_pdf(

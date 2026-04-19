@@ -76,7 +76,7 @@ async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], s
         from scoring.poison_pill import detect_poison_pills
         from scoring.criterion_scorer import score_extracted_gates
         from scoring.wps_calculator import calculate_wps
-        import fitz  # pymupdf
+        from ingestion.pdf_utils import extract_pdf_pages
 
         # Step 1 — Parse RFP
         def on_chunk_start(current, total):
@@ -107,11 +107,7 @@ async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], s
         emit({"event": "progress", "step": 2, "total_steps": 5, "label": "Detecting poison pill clauses…", "pct": 28})
 
         def _extract_pages(path):
-            pages = []
-            with fitz.open(path) as doc:
-                for i, page in enumerate(doc, 1):
-                    pages.append({"page_number": i, "text": page.get_text() or ""})
-            return pages
+            return extract_pdf_pages(path)
 
         raw_pages = await asyncio.to_thread(_extract_pages, rfp_path)
         poison_pills = await asyncio.to_thread(detect_poison_pills, pills_raw, raw_pages)
