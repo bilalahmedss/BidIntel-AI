@@ -44,7 +44,7 @@ def login(body: LoginIn):
     db.close()
     if not u or not verify_password(body.password, u["password_hash"]):
         raise HTTPException(401, "Invalid credentials")
-    token = create_token(u["id"], u["email"])
+    token = create_token(u["id"], u["email"], u.get("token_version", 0))
     return {"access_token": token, "token_type": "bearer", "expires_in": 86400,
             "user": {"id": u["id"], "email": u["email"], "full_name": u["full_name"]}}
 
@@ -52,3 +52,14 @@ def login(body: LoginIn):
 @router.get("/me")
 def me(user: dict = Depends(get_current_user)):
     return {"id": user["id"], "email": user["email"], "full_name": user["full_name"]}
+
+
+@router.post("/logout", status_code=204)
+def logout(user: dict = Depends(get_current_user)):
+    db = get_db()
+    db.execute(
+        "UPDATE users SET token_version=token_version+1, updated_at=datetime('now') WHERE id=?",
+        (user["id"],),
+    )
+    db.commit()
+    db.close()

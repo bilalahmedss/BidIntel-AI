@@ -165,7 +165,12 @@ export default function ProjectWorkspacePage() {
 
       {/* Editor */}
       <div className="flex-1 bg-slate-950">
-        <SectionEditor sectionId={activeSectionId} sectionTitle={activeSection?.title || ''} />
+        <SectionEditor
+          projectId={pid}
+          sectionId={activeSectionId}
+          sectionTitle={activeSection?.title || ''}
+          initialContent={activeSection?.content || ''}
+        />
       </div>
     </div>
   )

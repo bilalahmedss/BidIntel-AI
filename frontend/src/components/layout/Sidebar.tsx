@@ -30,7 +30,7 @@ export default function Sidebar() {
       </nav>
       <div className="px-4 py-4 border-t border-slate-800">
         <div className="text-xs text-slate-400 truncate mb-2">{user?.full_name || user?.email}</div>
-        <button onClick={logout}
+        <button onClick={() => { void logout() }}
           className="flex items-center gap-2 text-xs text-slate-500 hover:text-red-400 transition-colors">
           <LogOut size={14} /> Sign out
         </button>

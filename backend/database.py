@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
     email         TEXT    NOT NULL UNIQUE,
     full_name     TEXT    NOT NULL DEFAULT '',
     password_hash TEXT    NOT NULL,
+    token_version INTEGER NOT NULL DEFAULT 0,
     created_at    TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at    TEXT    NOT NULL DEFAULT (datetime('now'))
 );
@@ -26,6 +27,8 @@ CREATE TABLE IF NOT EXISTS projects (
     issuer            TEXT    NOT NULL DEFAULT '',
     status            TEXT    NOT NULL DEFAULT 'draft',
     deadline          TEXT    NOT NULL DEFAULT '',
+    company_knowledge_data TEXT NOT NULL DEFAULT '',
+    response_rfp      TEXT    NOT NULL DEFAULT '',
     rfp_filename      TEXT    NOT NULL DEFAULT '',
     response_filename TEXT    NOT NULL DEFAULT '',
     parsed_rfp_json   TEXT,
@@ -107,11 +110,25 @@ def init_db() -> None:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(str(DB_PATH)) as conn:
         conn.executescript(SCHEMA)
+        user_columns = {r[1] for r in conn.execute("PRAGMA table_info(users)").fetchall()}
+        if "token_version" not in user_columns:
+            conn.execute("ALTER TABLE users ADD COLUMN token_version INTEGER NOT NULL DEFAULT 0")
+        project_columns = {r[1] for r in conn.execute("PRAGMA table_info(projects)").fetchall()}
+        if "company_knowledge_data" not in project_columns:
+            conn.execute(
+                "ALTER TABLE projects ADD COLUMN company_knowledge_data TEXT NOT NULL DEFAULT ''"
+            )
+        if "response_rfp" not in project_columns:
+            conn.execute("ALTER TABLE projects ADD COLUMN response_rfp TEXT NOT NULL DEFAULT ''")
     # Reset any stuck running jobs from a previous crash
-    with get_db() as conn:
+    conn = get_db()
+    try:
         conn.execute(
             "UPDATE analysis_jobs SET status='error', error_message='Server restarted' WHERE status='running'"
         )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def get_db() -> sqlite3.Connection:

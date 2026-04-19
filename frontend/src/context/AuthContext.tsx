@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, ReactNode } from 'react'
+import api from '../api/axios'
 
 interface User { id: number; email: string; full_name: string }
-interface AuthCtx { user: User | null; token: string | null; login(token: string, user: User): void; logout(): void }
+interface AuthCtx { user: User | null; token: string | null; login(token: string, user: User): void; logout(): Promise<void> }
 
 const AuthContext = createContext<AuthCtx>(null!)
 
@@ -12,14 +13,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return u ? JSON.parse(u) : null
   })
 
+  function clearSession() {
+    localStorage.removeItem('bi_token')
+    localStorage.removeItem('bi_user')
+    setToken(null)
+    setUser(null)
+  }
+
   function login(t: string, u: User) {
     localStorage.setItem('bi_token', t)
     localStorage.setItem('bi_user', JSON.stringify(u))
     setToken(t); setUser(u)
   }
-  function logout() {
-    localStorage.removeItem('bi_token'); localStorage.removeItem('bi_user')
-    setToken(null); setUser(null)
+  async function logout() {
+    try {
+      if (localStorage.getItem('bi_token')) {
+        await api.post('/auth/logout')
+      }
+    } catch (_err) {
+      // Clear local state even if the server-side token is already invalid.
+    } finally {
+      clearSession()
+    }
   }
   return <AuthContext.Provider value={{ user, token, login, logout }}>{children}</AuthContext.Provider>
 }
