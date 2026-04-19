@@ -95,7 +95,7 @@ export default function AnalysisPage() {
           {/* Stall warning */}
           {job.status === 'running' && job.elapsed > 45 && job.pct < 30 && (
             <div className="mt-3 text-xs text-amber-400 bg-amber-900/20 rounded px-3 py-2">
-              Waiting for Gemini API response — this can take 30–90 s per chunk on the free tier. If stuck &gt;2 min, check your API quota at console.cloud.google.com.
+              Waiting for Groq API response — this can take 30–90 s per chunk. If stuck &gt;2 min, check your API quota at console.groq.com.
             </div>
           )}
 

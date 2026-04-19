@@ -12,7 +12,7 @@ from backend.database import get_db, row, rows
 
 router = APIRouter()
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[2]
 UPLOAD_DIR = ROOT / "data" / "uploads"
 BRAIN_DIR = ROOT / "data" / "company_brain"
 
