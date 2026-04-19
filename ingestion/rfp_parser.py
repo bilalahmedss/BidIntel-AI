@@ -6,10 +6,12 @@ from typing import Any, Callable, Dict, List, Optional
 
 from backend.groq_client import create_json_completion
 from backend.llm_schemas import validate_rfp_extraction_payload
+from backend.safety import QuerySafetyLayer
 from ingestion.pdf_utils import extract_pdf_pages
 from dotenv import load_dotenv
 
 load_dotenv()
+_safety = QuerySafetyLayer()
 
 DEFAULT_MODEL = "llama-3.3-70b-versatile"
 MAX_CHUNK_TOKENS = 8000
@@ -17,7 +19,7 @@ CHARS_PER_TOKEN_ESTIMATE = 4
 CHUNK_OVERLAP_PAGES = 1
 MAX_COMPLETION_TOKENS = 2000
 
-SYSTEM_PROMPT = """You are an RFP analysis engine. Extract the complete evaluation structure
+BASE_SYSTEM_PROMPT = """You are an RFP analysis engine. Extract the complete evaluation structure
 from this tender document. Return ONLY valid JSON with this exact schema:
 
 {
@@ -56,6 +58,7 @@ from this tender document. Return ONLY valid JSON with this exact schema:
 
 Do not invent information. Only extract what is explicitly stated in the document.
 Return ONLY valid JSON, no markdown, no explanation."""
+SYSTEM_PROMPT = _safety.build_guarded_system_prompt(BASE_SYSTEM_PROMPT)
 
 
 def _extract_rfp_id_from_filename(pdf_path: str) -> str:
@@ -159,6 +162,14 @@ class RFPParser:
         return normalized
 
     def _extract_structured_from_chunk(self, chunk_text: str) -> Dict[str, Any]:
+        if _safety.detect_prompt_injection(chunk_text):
+            _safety.record_event(
+                route="analysis",
+                context="rfp_chunk",
+                event_type="prompt_injection_detected",
+                action_taken="guarded_prompt_applied",
+                metadata={"chunk_length": len(chunk_text)},
+            )
         try:
             raw = create_json_completion(
                 api_key=self.api_key,

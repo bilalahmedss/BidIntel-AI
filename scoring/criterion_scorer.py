@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, List
 
 from backend.groq_client import create_json_completion
 from backend.llm_schemas import validate_batch_criterion_payload
+from backend.safety import QuerySafetyLayer
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,6 +15,7 @@ BATCH_SIZE = 5
 MAX_BATCH_PAYLOAD_CHARS = 18_000
 MAX_BATCH_CONTEXT_CHARS = 12_000
 MAX_BATCH_WORKERS = int(os.getenv("SCORING_BATCH_WORKERS", "3"))
+_safety = QuerySafetyLayer()
 
 def _normalize_signal(signal: str) -> str:
     return " ".join(signal.strip().lower().split())
@@ -31,6 +33,13 @@ def _trim_chunks(chunks: List[str], max_chars: int) -> List[str]:
             trimmed.append(piece)
             total += len(piece)
     return trimmed
+
+
+def _compact_snippet(text: str, max_chars: int = 260) -> str:
+    compact = " ".join(str(text or "").split())
+    if len(compact) <= max_chars:
+        return compact
+    return compact[: max_chars - 3].rstrip() + "..."
 
 
 def _normalize_matched_signals(checklist_signals: List[str], matched_signals: List[str]) -> List[str]:
@@ -55,10 +64,12 @@ def _build_batch_payload(
     shared_chunks: List[str] = []
     seen_chunks = set()
     criteria_payload: List[Dict[str, Any]] = []
+    evidence_by_id: Dict[str, List[str]] = {}
 
     for criterion in criteria_batch:
         query = f"{criterion['name']}\n{criterion['description']}".strip()
         retrieved_chunks = retriever(query, top_k=top_k) if query else []
+        evidence_by_id[criterion["criterion_id"]] = [_compact_snippet(chunk) for chunk in retrieved_chunks[:3]]
         for chunk in retrieved_chunks:
             if chunk not in seen_chunks:
                 seen_chunks.add(chunk)
@@ -73,9 +84,49 @@ def _build_batch_payload(
         )
 
     return {
-        "retrieved_chunks": _trim_chunks(shared_chunks, MAX_BATCH_CONTEXT_CHARS),
-        "criteria": criteria_payload,
+        "payload": {
+            "retrieved_chunks": _trim_chunks(shared_chunks, MAX_BATCH_CONTEXT_CHARS),
+            "criteria": criteria_payload,
+        },
+        "evidence_by_id": evidence_by_id,
     }
+
+
+def build_scoring_system_prompt() -> str:
+    base_prompt = (
+        "Given the shared document excerpts and these scoring criteria, return ONLY a JSON object "
+        "keyed by criterion_id. Each value must be an object with key 'matched_signals' containing "
+        "only the checklist signals clearly present in the excerpts for that criterion. Do not invent "
+        "signals and do not include criterion IDs that were not provided."
+    )
+    return _safety.build_guarded_system_prompt(base_prompt)
+
+
+def _build_rationale(
+    criterion_name: str,
+    matched_signals: List[str],
+    gap_signals: List[str],
+    evidence_snippets: List[str],
+) -> str:
+    if matched_signals and gap_signals:
+        return (
+            f"{criterion_name} is partially evidenced: matched {len(matched_signals)} signal(s) but still has "
+            f"{len(gap_signals)} gap(s). Review the supporting excerpts before relying on this score."
+        )
+    if matched_signals:
+        return (
+            f"{criterion_name} is grounded by retrieved evidence covering {len(matched_signals)} signal(s). "
+            "Human review should still confirm completeness against the source documents."
+        )
+    if evidence_snippets:
+        return (
+            f"{criterion_name} has retrieved context, but no checklist signals were confidently matched. "
+            "This is a low-evidence result and may require manual review."
+        )
+    return (
+        f"{criterion_name} has no retrieved supporting evidence. Treat this as a low-evidence result and verify "
+        "manually before acting on it."
+    )
 
 
 def _score_batch_payload(
@@ -90,13 +141,19 @@ def _score_batch_payload(
     if all(not item["checklist_signals"] for item in criteria_batch):
         return [{**item, "matched_signals": [], "gap_signals": []} for item in criteria_batch]
 
-    system_prompt = (
-        "Given the shared document excerpts and these scoring criteria, return ONLY a JSON object "
-        "keyed by criterion_id. Each value must be an object with key 'matched_signals' containing "
-        "only the checklist signals clearly present in the excerpts for that criterion. Do not invent "
-        "signals and do not include criterion IDs that were not provided."
-    )
-    user_payload = _build_batch_payload(criteria_batch, retriever, top_k)
+    system_prompt = build_scoring_system_prompt()
+    batch_bundle = _build_batch_payload(criteria_batch, retriever, top_k)
+    user_payload = batch_bundle["payload"]
+    evidence_by_id = batch_bundle["evidence_by_id"]
+
+    if _safety.detect_prompt_injection(json.dumps(user_payload)):
+        _safety.record_event(
+            route="analysis",
+            context="criterion_scoring_context",
+            event_type="prompt_injection_detected",
+            action_taken="guarded_prompt_applied",
+            metadata={"criteria_in_batch": len(criteria_batch)},
+        )
 
     if len(json.dumps(user_payload)) > MAX_BATCH_PAYLOAD_CHARS:
         if len(criteria_batch) == 1:
@@ -131,13 +188,23 @@ def _score_batch_payload(
 
     scored_batch: List[Dict[str, Any]] = []
     for item in criteria_batch:
+        evidence_snippets = evidence_by_id.get(item["criterion_id"], [])
         matched_signals = _normalize_matched_signals(
             item["checklist_signals"],
             validated.root[item["criterion_id"]].matched_signals,
         )
         matched_norm = {_normalize_signal(signal) for signal in matched_signals}
         gap_signals = [signal for signal in item["checklist_signals"] if _normalize_signal(signal) not in matched_norm]
-        scored_batch.append({**item, "matched_signals": matched_signals, "gap_signals": gap_signals})
+        scored_batch.append(
+            {
+                **item,
+                "matched_signals": matched_signals,
+                "gap_signals": gap_signals,
+                "evidence_snippets": evidence_snippets,
+                "evidence_strength": "grounded" if matched_signals else ("limited" if evidence_snippets else "none"),
+                "rationale": _build_rationale(item["name"], matched_signals, gap_signals, evidence_snippets),
+            }
+        )
     return scored_batch
 
 
@@ -182,8 +249,6 @@ def score_extracted_gates(
     criterion_results: List[Dict[str, Any]] = []
     gate_results: List[Dict[str, Any]] = []
     binary_gate_failed = False
-    eliminated_at_gate = ""
-    total_numeric_score = 0.0
 
     total_criteria = len(flat_criteria)
 
@@ -215,8 +280,6 @@ def score_extracted_gates(
         if not isinstance(criteria, list):
             criteria = []
 
-        gate_numeric_score = 0.0
-        gate_numeric_max = 0.0
         gate_present_count = 0
         gate_checklist_count = 0
         gate_failed_binary = False
@@ -229,8 +292,7 @@ def score_extracted_gates(
             scored_so_far += 1
             criterion_id = str(criterion.get("id", "") or "")
             name = str(criterion.get("name", "") or "")
-            max_points_raw = criterion.get("max_points", 0.0)
-            max_points = float(max_points_raw or 0.0)
+            max_points = float(criterion.get("max_points", 0.0) or 0.0)
 
             checklist_signals_raw = criterion.get("checklist_signals", [])
             checklist_signals = [str(s) for s in checklist_signals_raw] if isinstance(checklist_signals_raw, list) else []
@@ -243,7 +305,6 @@ def score_extracted_gates(
             if on_progress:
                 on_progress(scored_so_far, total_criteria, name)
 
-            total_signals = len(checklist_signals)
             has_gaps = len(gap_signals) > 0
 
             if gate_type == "binary":
@@ -265,31 +326,11 @@ def score_extracted_gates(
                 )
                 continue
 
-            if gate_type == "scored" and max_points <= 0:
-                status = "PRESENT" if len(matched_signals) > 0 else "MISSING"
-                if status == "PRESENT":
-                    gate_present_count += 1
-                gate_checklist_count += 1
-                criterion_results.append(
-                    {
-                        "gate_id": gate_id,
-                        "gate_name": gate_name,
-                        "gate_type": "scored",
-                        "criterion_id": criterion_id,
-                        "name": name,
-                        "status": status,
-                        "matched_signals": matched_signals,
-                        "gap_signals": gap_signals,
-                        "max_points": 0.0,
-                    }
-                )
-                continue
-
-            # Default numeric scoring path for scored criteria with points.
-            score = (len(matched_signals) / total_signals) * max_points if total_signals > 0 else 0.0
-            score = round(score, 2)
-            gate_numeric_score += score
-            gate_numeric_max += max_points
+            # Equal-weight: criterion is PRESENT if any signal matched, else MISSING.
+            status = "PRESENT" if len(matched_signals) > 0 else "MISSING"
+            if status == "PRESENT":
+                gate_present_count += 1
+            gate_checklist_count += 1
             criterion_results.append(
                 {
                     "gate_id": gate_id,
@@ -297,10 +338,10 @@ def score_extracted_gates(
                     "gate_type": "scored",
                     "criterion_id": criterion_id,
                     "name": name,
-                    "score": score,
-                    "max_points": max_points,
+                    "status": status,
                     "matched_signals": matched_signals,
                     "gap_signals": gap_signals,
+                    "max_points": max_points,
                 }
             )
 
@@ -313,46 +354,25 @@ def score_extracted_gates(
         if gate_type == "binary":
             gate_result["status"] = "FAIL" if gate_failed_binary else "PASS"
         elif gate_type == "scored":
-            threshold = gate.get("advancement_threshold", None)
-            threshold_val = float(threshold) if isinstance(threshold, (int, float, str)) and str(threshold).strip() else None
             gate_result.update(
                 {
-                    "score": round(gate_numeric_score, 2),
-                    "max_points": round(gate_numeric_max, 2),
-                    "checklist_present_count": gate_present_count,
-                    "checklist_total_count": gate_checklist_count,
-                    "advancement_threshold": threshold_val,
+                    "met": gate_present_count,
+                    "total": gate_checklist_count,
+                    "status": "PASSED",
                 }
             )
-            if threshold_val is not None and gate_numeric_score < threshold_val and not eliminated_at_gate:
-                eliminated_at_gate = gate_id or gate_name or "unknown_gate"
-                gate_result["status"] = "ELIMINATED"
-            else:
-                gate_result["status"] = "PASSED"
-            total_numeric_score += gate_numeric_score
         else:
             gate_result["status"] = "UNKNOWN_TYPE"
 
         gate_results.append(gate_result)
 
-    if binary_gate_failed:
-        wps = 0.0
-        verdict = "DO NOT BID"
-        elimination_reason = "At least one binary gate contains FAIL criteria."
-    else:
-        wps = round(total_numeric_score, 2)
-        if eliminated_at_gate:
-            verdict = "ELIMINATED"
-            elimination_reason = f"Threshold not met at gate: {eliminated_at_gate}"
-        else:
-            verdict = "QUALIFIED"
-            elimination_reason = ""
+    verdict = "DO NOT BID" if binary_gate_failed else "QUALIFIED"
+    elimination_reason = "At least one binary gate contains FAIL criteria." if binary_gate_failed else ""
 
     return {
         "criterion_results": criterion_results,
         "gate_results": gate_results,
         "wps_summary": {
-            "wps": wps,
             "verdict": verdict,
             "elimination_reason": elimination_reason,
         },

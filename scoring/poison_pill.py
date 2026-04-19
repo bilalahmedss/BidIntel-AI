@@ -4,11 +4,13 @@ from typing import Any, Dict, List
 
 from backend.groq_client import create_json_completion
 from backend.llm_schemas import validate_poison_pill_sweep_payload
+from backend.safety import QuerySafetyLayer
 from dotenv import load_dotenv
 
 load_dotenv()
 
 DEFAULT_MODEL = "llama-3.3-70b-versatile"
+_safety = QuerySafetyLayer()
 
 
 def _normalize_clause_text(text: str) -> str:
@@ -35,13 +37,15 @@ def _find_clause_page(clause_text: str, raw_pages: List[Dict[str, Any]]) -> tupl
 
 
 def _sweep_page_for_risks(page_text: str, model: str = DEFAULT_MODEL) -> Dict[str, Any]:
-    system_prompt = (
-        "Does this page contain any clause that could automatically disqualify a bidder, "
-        "impose unlimited liability, restrict nationality, ban subcontracting, or impose "
-        "unfair sole discretion on the client? Return ONLY a JSON object: "
-        "{\"found\": bool, \"clause_text\": string, \"reason\": string, \"severity\": \"CRITICAL\"|\"HIGH\"|\"MEDIUM\"}. "
-        "If nothing found return {\"found\": false}."
-    )
+    system_prompt = build_poison_pill_system_prompt()
+    if _safety.detect_prompt_injection(page_text):
+        _safety.record_event(
+            route="analysis",
+            context="poison_pill_page",
+            event_type="prompt_injection_detected",
+            action_taken="guarded_prompt_applied",
+            metadata={"page_length": len(page_text)},
+        )
     raw = create_json_completion(
         api_key=os.getenv("GROQ_API_KEY"),
         model=model,
@@ -62,6 +66,17 @@ def _sweep_page_for_risks(page_text: str, model: str = DEFAULT_MODEL) -> Dict[st
         "reason": str(validated.reason or ""),
         "severity": _normalize_severity(validated.severity or "MEDIUM"),
     }
+
+
+def build_poison_pill_system_prompt() -> str:
+    base_prompt = (
+        "Does this page contain any clause that could automatically disqualify a bidder, "
+        "impose unlimited liability, restrict nationality, ban subcontracting, or impose "
+        "unfair sole discretion on the client? Return ONLY a JSON object: "
+        "{\"found\": bool, \"clause_text\": string, \"reason\": string, \"severity\": \"CRITICAL\"|\"HIGH\"|\"MEDIUM\"}. "
+        "If nothing found return {\"found\": false}."
+    )
+    return _safety.build_guarded_system_prompt(base_prompt)
 
 
 def detect_poison_pills(

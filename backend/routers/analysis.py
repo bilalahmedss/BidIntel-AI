@@ -15,10 +15,12 @@ from pydantic import BaseModel
 
 from backend.database import get_db, row, rows
 from backend.deps import get_current_user, get_current_user_from_token
+from backend.safety import QuerySafetyLayer
 
 router = APIRouter()
 
 UPLOAD_DIR = Path(__file__).resolve().parents[2] / "data" / "uploads"
+_safety = QuerySafetyLayer()
 
 
 @dataclass
@@ -38,6 +40,29 @@ _jobs: dict[str, Job] = {}
 class StartIn(BaseModel):
     project_id: int
     financial_scenario: str = "expected"
+
+
+def _build_wps_explanation(
+    scenario: str,
+    selected: dict,
+    criterion_results: list[dict],
+    poison_pills: list[dict],
+) -> str:
+    total = len(criterion_results)
+    met = sum(1 for item in criterion_results if item.get("status") in {"PRESENT", "PASS"})
+    gaps = sum(len(item.get("gap_signals", [])) for item in criterion_results)
+    severe_pills = [pill for pill in poison_pills if pill.get("severity") in {"CRITICAL", "HIGH"}]
+    binding = selected.get("binding_constraint", "")
+    parts = [
+        f"In the {scenario} scenario, BidIntel marked {met} of {total or 0} requirements as met.",
+    ]
+    if gaps:
+        parts.append(f"The response still shows {gaps} unresolved gap signal(s).")
+    if severe_pills:
+        parts.append(f"{len(severe_pills)} high-severity poison pill clause(s) increase delivery and legal risk.")
+    if binding:
+        parts.append(f"Primary scoring driver: {binding}.")
+    return " ".join(parts)
 
 
 async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], scenario: str):
@@ -181,6 +206,10 @@ async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], s
             wps_results[s] = calculate_wps(gates, criterion_results, financial_scenario=s)
 
         selected = wps_results[scenario]
+        for s in ["conservative", "expected", "optimistic"]:
+            wps_results[s]["scenarios"][s]["explanation"] = _build_wps_explanation(
+                s, wps_results[s], criterion_results, poison_pills
+            )
         logger.info("[job=%s] Step 5 done: verdict=%s wps=%.2f (scenario=%s) | constraint: %s",
                     job.job_id[:8], selected.get("verdict"),
                     selected.get("scenarios", {}).get(scenario, {}).get("wps", 0),
@@ -200,7 +229,16 @@ async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], s
                 json.dumps(gates),
                 json.dumps(criterion_results),
                 json.dumps(selected.get("gate_results", [])),
-                json.dumps(selected.get("scenarios", {}).get(scenario, {})),
+                json.dumps(
+                    {
+                        **selected.get("scenarios", {}).get(scenario, {}),
+                        "verdict": selected.get("verdict"),
+                        "binding_constraint": selected.get("binding_constraint", ""),
+                        "explanation": _build_wps_explanation(
+                            scenario, selected, criterion_results, poison_pills
+                        ),
+                    }
+                ),
                 json.dumps(wps_results),
                 json.dumps(poison_pills),
             ),
@@ -259,6 +297,23 @@ async def start_analysis(body: StartIn, user: dict = Depends(get_current_user)):
                (job_id, body.project_id, body.financial_scenario))
     db.commit()
     db.close()
+
+    _safety.record_event(
+        route="analysis",
+        context="analysis_start",
+        event_type="confidentiality_notice_enforced",
+        action_taken="warn_allow",
+        user_id=user["id"],
+        metadata={"project_id": body.project_id, "scenario": body.financial_scenario},
+    )
+    _safety.record_event(
+        route="analysis",
+        context="analysis_start",
+        event_type="external_llm_processing",
+        action_taken="analysis_sent_confidential_material",
+        user_id=user["id"],
+        metadata={"project_id": body.project_id, "scenario": body.financial_scenario},
+    )
 
     asyncio.create_task(_run_pipeline(
         job, rfp_path,
