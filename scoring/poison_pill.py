@@ -2,7 +2,8 @@ import json
 import os
 from typing import Any, Dict, List
 
-from groq import Groq
+from backend.groq_client import create_json_completion
+from backend.llm_schemas import validate_poison_pill_sweep_payload
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -41,26 +42,25 @@ def _sweep_page_for_risks(page_text: str, model: str = DEFAULT_MODEL) -> Dict[st
         "{\"found\": bool, \"clause_text\": string, \"reason\": string, \"severity\": \"CRITICAL\"|\"HIGH\"|\"MEDIUM\"}. "
         "If nothing found return {\"found\": false}."
     )
-    co = Groq(api_key=os.getenv("GROQ_API_KEY"))
-    response = co.chat.completions.create(
+    raw = create_json_completion(
+        api_key=os.getenv("GROQ_API_KEY"),
         model=model,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": json.dumps({"page_text": page_text[:12000]})},
         ],
-        response_format={"type": "json_object"},
         temperature=0,
         max_tokens=800,
     )
-    raw = response.choices[0].message.content.strip()
     parsed = json.loads(raw)
     if not isinstance(parsed, dict):
         return {"found": False}
+    validated = validate_poison_pill_sweep_payload(parsed)
     return {
-        "found": bool(parsed.get("found", False)),
-        "clause_text": str(parsed.get("clause_text", "") or ""),
-        "reason": str(parsed.get("reason", "") or ""),
-        "severity": _normalize_severity(parsed.get("severity", "MEDIUM")),
+        "found": validated.found,
+        "clause_text": str(validated.clause_text or ""),
+        "reason": str(validated.reason or ""),
+        "severity": _normalize_severity(validated.severity or "MEDIUM"),
     }
 
 

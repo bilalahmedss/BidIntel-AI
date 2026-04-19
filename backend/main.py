@@ -14,7 +14,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.database import init_db
 from backend.routers import auth, projects, sections, analysis, ask, lookup
-from backend.websocket import ws_router
 
 
 @asynccontextmanager
@@ -39,7 +38,6 @@ app.include_router(sections.router, prefix="/api",          tags=["sections"])
 app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"])
 app.include_router(ask.router,      prefix="/api/ask",      tags=["ask"])
 app.include_router(lookup.router,   prefix="/api/lookup",   tags=["lookup"])
-app.include_router(ws_router)
 
 
 @app.get("/api/health")

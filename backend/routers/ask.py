@@ -6,9 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from backend.auth_utils import decode_token
+from backend.deps import get_current_user, get_current_user_from_token
+from backend.groq_client import create_streaming_completion
 from backend.database import get_db, row, rows
-from backend.deps import get_current_user
 
 router = APIRouter()
 
@@ -101,14 +101,11 @@ class AskIn(BaseModel):
 
 @router.post("/{pid}/send")
 async def send_message(pid: int, body: AskIn, token: str = Query(...)):
-    payload = decode_token(token)
-    if not payload:
-        raise HTTPException(401, "Invalid token")
-    user_id = int(payload["sub"])
+    user = get_current_user_from_token(token)
+    user_id = int(user["id"])
 
     import asyncio
     import sys
-    from groq import AsyncGroq
     sys.path.insert(0, str(ROOT))
 
     # Persist user message
@@ -141,13 +138,11 @@ async def send_message(pid: int, body: AskIn, token: str = Query(...)):
     async def generate():
         full = ""
         try:
-            client = AsyncGroq(api_key=os.getenv("GROQ_API_KEY"))
-            stream = await client.chat.completions.create(
+            stream = await create_streaming_completion(
                 model="llama-3.3-70b-versatile",
                 messages=messages,
                 temperature=0.3,
                 max_tokens=1000,
-                stream=True,
             )
             async for chunk in stream:
                 delta = chunk.choices[0].delta.content or ""

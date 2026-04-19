@@ -7,10 +7,6 @@ api.interceptors.request.use(cfg => {
   return cfg
 })
 export default api
-export const wsUrl = (path: string) => {
-  const token = localStorage.getItem('bi_token') || ''
-  return `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws${path}?token=${token}`
-}
 export const sseUrl = (path: string) => {
   const token = localStorage.getItem('bi_token') || ''
   const base = import.meta.env.VITE_API_URL || 'http://localhost:8000'
