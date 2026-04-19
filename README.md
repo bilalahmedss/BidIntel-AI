@@ -1,179 +1,169 @@
 # BidIntel AI
 
-A bid decision intelligence platform for proposal managers and bid teams. Upload an RFP, upload your draft bid response, and BidIntel automatically extracts evaluation criteria, scores your response against each criterion, flags risky clauses, and calculates a Win Probability Score (WPS) — all powered by Groq's Llama 3.3-70B.
+BidIntel AI is a bid decision intelligence platform for proposal managers and bid teams. It parses RFPs, scores your draft response against evaluation criteria, flags risky clauses, calculates a Win Probability Score (WPS), and gives you a grounded AI workspace for project-by-project bidding.
 
----
+## What BidIntel Does
 
-## What it does
+- Parses RFP PDFs into structured gates, criteria, checklist signals, evidence requirements, poison pills, and submission rules.
+- Scores your response content against extracted criteria using Groq plus retrieval from your response artifacts and company knowledge base.
+- Detects poison-pill clauses that can create legal or commercial disqualification risk.
+- Calculates deterministic WPS outcomes across conservative, expected, and optimistic financial scenarios.
+- Provides a project-level AI chat assistant grounded in the RFP, uploaded response material, and company knowledge base.
+- Stores analyses, chat history, sections, users, and projects in SQLite.
 
-1. **Parses RFPs** — Extracts gates, scored criteria, checklist signals, evidence requirements, poison pills, and submission rules from any tender PDF.
-2. **Scores your response** — Retrieves relevant chunks from your bid response and company knowledge base, then uses an LLM to determine which checklist signals are present and which are missing.
-3. **Detects poison pills** — Flags clauses that could automatically disqualify you (unlimited liability, sole-discretion clauses, nationality restrictions, etc.) with a severity rating.
-4. **Calculates WPS** — Deterministic Win Probability Score across three financial scenarios (conservative / expected / optimistic). Binary gate failures produce an immediate DO NOT BID verdict.
-5. **AI chat assistant** — Ask questions about the RFP, your response, or your company capabilities. Answers draw from all three sources simultaneously.
-6. **Company knowledge base** — Upload company docs once (CVs, certifications, past proposals). They're automatically searched during every analysis and every chat.
-
----
-
-## Tech stack
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
 | Frontend | React 18, TypeScript, Vite, Tailwind CSS, TanStack Query |
-| Backend | FastAPI, Python 3.10+, SQLite (WAL mode) |
-| LLM | Groq — `llama-3.3-70b-versatile` |
-| Embeddings | SentenceTransformer `all-MiniLM-L6-v2` (local, no API cost) |
-| Vector store | ChromaDB (ephemeral per-analysis + persistent KB) |
-| PDF extraction | PyMuPDF (text layer only — no OCR) |
-| RAG | LlamaIndex + ChromaDB |
-| Auth | JWT (HS256) + PBKDF2-SHA256 password hashing |
-| Streaming | Server-Sent Events (SSE) for analysis progress and chat |
+| Backend | FastAPI, Python, SQLite |
+| LLM | Groq chat completions |
+| Embeddings | SentenceTransformers `all-MiniLM-L6-v2` |
+| Vector Store | ChromaDB |
+| Retrieval | LlamaIndex + Chroma |
+| Auth | JWT (HS256) + PBKDF2 password hashing |
+| Streaming | Server-Sent Events (SSE) |
+| PDF Extraction | PyMuPDF with optional Tesseract OCR fallback |
 
----
+## Repository Layout
 
-## Project structure
-
-```
+```text
 BidIntel-AI/
-├── backend/                  # FastAPI app
-│   ├── main.py               # App factory, CORS, DB init, router registration
-│   ├── database.py           # SQLite schema, get_db(), init_db()
-│   ├── auth_utils.py         # Password hashing, JWT encode/decode
-│   ├── deps.py               # get_current_user() dependency injection
-│   ├── websocket.py          # WebSocket routing
-│   └── routers/
-│       ├── auth.py           # Register, login, me
-│       ├── projects.py       # Project CRUD + PDF uploads + team members
-│       ├── sections.py       # Response section CRUD + auto-generate from RFP
-│       ├── analysis.py       # Pipeline orchestration + SSE streaming
-│       ├── ask.py            # Per-project AI chat (streaming)
-│       └── lookup.py         # Knowledge base upload/delete/search
-│
-├── ingestion/
-│   ├── pdf_utils.py          # PDF text extraction: text-layer first, OCR fallback
-│   ├── rfp_parser.py         # PDF → structured JSON via Groq (chunked)
-│   ├── response_loader.py    # Bid response PDF → ephemeral ChromaDB index
-│   └── kb_loader.py          # Company docs → persistent ChromaDB index
-│
-├── rag/
-│   └── retriever.py          # make_retriever(index) → (query, top_k) → chunks
-│
-├── scoring/
-│   ├── criterion_scorer.py   # Score each criterion via LLM signal matching
-│   ├── poison_pill.py        # Two-pass poison pill detection
-│   └── wps_calculator.py     # Deterministic WPS across financial scenarios
-│
-├── frontend/
-│   ├── src/
-│   │   ├── pages/
-│   │   │   ├── LoginPage.tsx
-│   │   │   ├── DashboardPage.tsx
-│   │   │   ├── ProjectsPage.tsx
-│   │   │   ├── ProjectWorkspacePage.tsx  # Section editor + analysis trigger
-│   │   │   ├── AnalysisPage.tsx          # Results: WPS, criteria, poison pills
-│   │   │   ├── AskPage.tsx               # AI chat interface
-│   │   │   └── KnowledgeBasePage.tsx     # Upload/manage company docs
-│   │   ├── context/
-│   │   │   ├── AuthContext.tsx           # JWT token, login/logout
-│   │   │   └── AnalysisContext.tsx       # Global analysis job state + SSE
-│   │   ├── api/                          # Typed API calls (axios)
-│   │   └── components/layout/           # Sidebar, AppShell
-│   └── vite.config.ts                   # Proxies /api → localhost:8000 in dev
-│
-├── dashboard/
-│   └── app.py                # Legacy Streamlit UI (standalone, no auth/DB)
-│
-├── data/                     # Auto-created at runtime
-│   ├── bidintel.db           # SQLite database
-│   ├── uploads/rfp/          # {project_id}_rfp.pdf
-│   ├── uploads/response/     # {project_id}_response.pdf
-│   ├── company_brain/        # Raw uploaded KB documents
-│   └── chroma_kb/            # Persisted ChromaDB vector index
-│
-├── tests/
-├── .env                      # Secret config (not committed)
-├── requirements-backend.txt  # Python deps for FastAPI backend
-└── requirements.txt          # Python deps for Streamlit dashboard
+|-- backend/
+|   |-- main.py
+|   |-- database.py
+|   |-- auth_utils.py
+|   |-- deps.py
+|   |-- groq_client.py
+|   |-- llm_schemas.py
+|   |-- schemas.py
+|   `-- routers/
+|       |-- auth.py
+|       |-- projects.py
+|       |-- sections.py
+|       |-- analysis.py
+|       |-- ask.py
+|       `-- lookup.py
+|-- frontend/
+|   |-- src/
+|   |   |-- api/
+|   |   |-- components/
+|   |   |-- context/
+|   |   `-- pages/
+|   |-- package.json
+|   `-- vite.config.ts
+|-- ingestion/
+|-- rag/
+|-- scoring/
+|-- tests/
+|-- scripts/
+|-- dashboard/
+|-- requirements-backend.txt
+`-- requirements.txt
 ```
 
----
+## Core Workflows
 
-## Getting started
+### 1. Create a Project
+
+Project creation now requires all of the following:
+
+- Project title
+- Company knowledge data
+- Response RFP content
+
+Optional project metadata:
+
+- Issuer
+- RFP ID
+- Deadline
+- Status
+- RFP PDF attachment
+- Response PDF attachment
+
+This means a user cannot create a project with empty or missing `company_knowledge_data` or `response_rfp`.
+
+### 2. Build the Company Knowledge Base
+
+Upload reusable company documents from the Knowledge Base page. These documents are indexed and reused across analyses and AI chat.
+
+Examples:
+
+- CVs
+- Certifications
+- Capability statements
+- Past proposals
+- Financial statements
+
+### 3. Run Analysis
+
+When a project analysis starts, the backend:
+
+1. extracts and parses the RFP
+2. performs poison-pill detection
+3. indexes response artifacts and combines them with company knowledge retrieval
+4. batch-scores criteria
+5. calculates WPS and stores the result
+
+Progress is streamed to the UI with SSE.
+
+### 4. Use Ask
+
+The Ask page lets users ask grounded questions about:
+
+- the RFP
+- the response
+- the company knowledge base
+
+## Installation Guide
 
 ### Prerequisites
 
-- Python 3.10+
-- Node.js 18+
-- A [Groq API key](https://console.groq.com) (free tier works)
+- Python 3.10 or newer
+- Node.js 18 or newer
+- npm
+- Groq API key
+- Optional: Tesseract OCR for scanned PDFs
 
-### 1. Clone and configure
+### 1. Clone the Repository
 
 ```bash
-git clone <repo-url>
+git clone <your-repo-url>
 cd BidIntel-AI
 ```
 
-Create a `.env` file in the project root:
+### 2. Create a Python Virtual Environment
 
-```env
-GROQ_API_KEY=gsk_...            # Your Groq API key
-JWT_SECRET_KEY=<random-hex>     # Any long random string, e.g. openssl rand -hex 32
-FRONTEND_ORIGIN=http://localhost:5173
+Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 ```
 
-### 2. Install Python dependencies
+macOS / Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 3. Install Backend Dependencies
+
+`requirements-backend.txt` does not currently include every runtime package used by the analysis pipeline, so install the backend requirements first and then the retrieval / embedding packages explicitly:
 
 ```bash
 pip install -r requirements-backend.txt
-pip install pymupdf chromadb llama-index llama-index-vector-stores-chroma sentence-transformers
+pip install chromadb llama-index llama-index-vector-stores-chroma sentence-transformers pymupdf
 ```
 
-#### OCR for scanned PDFs (optional but recommended)
-
-The app automatically falls back to Tesseract OCR for pages where PyMuPDF finds no text (scanned/image-based PDFs). Without Tesseract, scanned pages are skipped silently — text-layer PDFs are unaffected.
-
-**Windows:**
-1. Download and run the installer from [UB Mannheim](https://github.com/UB-Mannheim/tesseract/wiki) (includes English by default)
-2. Set the path in `.env`:
-   ```env
-   TESSERACT_CMD=C:/Program Files/Tesseract-OCR/tesseract.exe
-   ```
-
-**Linux/Mac:**
-```bash
-sudo apt install tesseract-ocr   # Ubuntu/Debian
-brew install tesseract           # macOS
-```
-
-The Python wrapper (`pytesseract`, `Pillow`) is already in `requirements-backend.txt`.
-
-To verify your setup and see per-page extraction details for any PDF:
+If you want the legacy Streamlit dashboard too:
 
 ```bash
-python tests/test_ocr.py                        # all PDFs in repo root
-python tests/test_ocr.py path/to/rfp.pdf        # specific file
-python tests/test_ocr.py path/to/rfp.pdf --no-ocr  # text layer only
+pip install -r requirements.txt
 ```
 
-Example output:
-```
-File : SMEDA Bid Response.pdf  |  358 pages
-
-  Page  74  [TEXT   ]   744 chars  |  Appendix D – Special Conditions ...
-  Page  75  [OCR    ]  1967 chars  |  TECHNICAL PROPOSAL SUBMISSION FORM ...
-  Page  76  [TEXT   ]  3169 chars  |  FORM TECH-4: DESCRIPTION OF APPROACH ...
-
-Summary
-  Text-layer pages : 355
-  OCR pages        : 3
-  Empty pages      : 0
-  Total chars      : 612,450
-  Time             : 18.4s
-```
-
-`[TEXT]` = digital PDF (fast), `[OCR]` = scanned page run through Tesseract, `[EMPTY]` = blank page.
-
-### 3. Install frontend dependencies
+### 4. Install Frontend Dependencies
 
 ```bash
 cd frontend
@@ -181,148 +171,264 @@ npm install
 cd ..
 ```
 
-### 4. Run
+### 5. Configure Environment Variables
 
-Open two terminals:
+Create a `.env` file in the repository root:
 
-**Terminal 1 — Backend:**
+```env
+GROQ_API_KEY=gsk_your_groq_key_here
+JWT_SECRET_KEY=replace_with_a_long_random_secret
+FRONTEND_ORIGIN=http://localhost:5173
+ACCESS_TOKEN_EXPIRE_SECONDS=86400
+
+# Optional
+TESSERACT_CMD=C:/Program Files/Tesseract-OCR/tesseract.exe
+GROQ_MAX_RETRIES=3
+GROQ_RETRY_BASE_DELAY_S=1.0
+GROQ_RETRY_MAX_DELAY_S=8.0
+GROQ_SYNC_CONCURRENCY=2
+GROQ_ASYNC_CONCURRENCY=2
+SCORING_BATCH_WORKERS=3
+```
+
+Optional frontend environment:
+
+Create `frontend/.env.local` if your frontend should call a non-default backend URL:
+
+```env
+VITE_API_URL=http://localhost:8000
+```
+
+### 6. Run the Application
+
+Backend:
+
 ```bash
 uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-**Terminal 2 — Frontend:**
+Frontend:
+
 ```bash
 cd frontend
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173), register an account, and you're ready.
+Open:
 
-> **API docs:** [http://localhost:8000/docs](http://localhost:8000/docs) (Swagger UI, auto-generated)
+- Frontend: [http://localhost:5173](http://localhost:5173)
+- Backend API docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 
----
+## Optional OCR Setup
 
-## How the analysis pipeline works
+OCR is used only when PyMuPDF cannot extract a text layer from a PDF page.
 
-When you click **Run Analysis**, the backend runs a 5-step async pipeline streamed live to the UI:
+### Windows
 
-```
-RFP PDF
-  │
-  ▼
-[1] RFP Parser (rfp_parser.py)
-    - Extract text pages with PyMuPDF (no OCR — text layer only)
-    - Chunk into ~20K char segments with 1-page overlap
-    - Send each chunk to Groq → extract gates, criteria, poison pills, rules
-    - Deduplicate and merge across chunks
-    - Cache parsed JSON in DB
-  │
-  ▼
-[2] Poison Pill Detection (poison_pill.py)
-    - Pass 1: Locate parser-extracted clauses in raw pages
-    - Pass 2: Groq semantic sweep of every page for missed risky clauses
-    - Output: clauses with page number, severity (CRITICAL/HIGH/MEDIUM), reason
-  │
-  ▼
-[3] Index Response + Knowledge Base
-    - Bid response PDF → ephemeral ChromaDB (SentenceTransformer embeddings)
-    - Company brain docs → persistent ChromaDB (rebuilt on upload)
-    - Combined retriever merges results from both, deduplicates
-  │
-  ▼
-[4] Criterion Scoring (criterion_scorer.py)
-    - For each criterion: retrieve top-3 chunks from combined index
-    - Groq LLM: which checklist signals are present in the retrieved text?
-    - Score = (matched signals / total signals) × max_points
-    - Binary gates: fail if any criterion has gaps
-    - Scored gates: compare sum to advancement threshold
-  │
-  ▼
-[5] WPS Calculation (wps_calculator.py)
-    - Conservative / Expected / Optimistic financial adjustments
-    - Binary gate failure → WPS = 0, verdict = DO NOT BID
-    - WPS = pq_gate × (Phase A + Phase B + Financial Score)
-    - Verdict bands: Strong / Competitive / Borderline / Weak / DO NOT BID
+Install Tesseract, then either add it to `PATH` or set:
+
+```env
+TESSERACT_CMD=C:/Program Files/Tesseract-OCR/tesseract.exe
 ```
 
-All steps stream live progress to the frontend via SSE with step label, percentage, and elapsed time.
+### macOS
 
----
+```bash
+brew install tesseract
+```
 
-## Key workflows
+### Ubuntu / Debian
 
-### Creating a project
+```bash
+sudo apt install tesseract-ocr
+```
 
-1. **Projects** → **New Project**
-2. Fill in title, issuer, deadline, status
-3. Upload the RFP PDF (required) and your draft bid response PDF (optional)
-4. Click **Create**
+### OCR Verification
 
-### Running analysis
+```bash
+python tests/test_ocr.py
+python tests/test_ocr.py path/to/file.pdf
+python tests/test_ocr.py path/to/file.pdf --no-ocr
+```
 
-1. Open a project → **Project Workspace**
-2. Click **Run Analysis** (top-right)
-3. Watch live progress — each step shows what's happening and how long it's taking
-4. When complete, go to **Analysis** to see results
+## Usage Guide
 
-### Interpreting results
+### Register and Sign In
 
-- **WPS tab** — Top-line Win Probability Score across scenarios, elimination reason if applicable
-- **Criteria tab** — Per-criterion scores, matched signals, and gap signals (missing evidence)
-- **Poison Pills tab** — Risky clauses with page references and severity
-- Switch between Conservative / Expected / Optimistic using the scenario selector
+1. Start the backend and frontend.
+2. Open the app in your browser.
+3. Register a user account.
+4. Sign in.
 
-### Building the knowledge base
+### Create a Project
 
-1. Go to **Knowledge Base** in the sidebar
-2. Upload company documents: capability statements, CVs, certifications, past proposals, financials
-3. Done — they're indexed automatically and used in every future analysis and Ask conversation
+1. Go to `Projects`.
+2. Click `New Project`.
+3. Enter the required project data:
+   - title
+   - company knowledge data
+   - response RFP
+4. Optionally add issuer, deadline, RFP ID, and PDF files.
+5. Click `Create Project`.
 
-### Using Ask (AI chat)
+### Edit Sections
 
-Open a project → navigate to **Ask** and ask anything:
-- "Do we meet the ISO 9001 requirement?"
-- "What's our proposed methodology for phase 2?"
-- "Summarise the evaluation criteria and their weights"
+Sections are edited in the workspace and saved through debounced REST autosave. There is no longer a section-collaboration WebSocket layer.
 
-The AI draws context from the RFP, your bid response, and your company knowledge base simultaneously.
+### Run Analysis
 
----
+1. Open a project workspace.
+2. Trigger analysis.
+3. Watch live status updates in the UI.
+4. Review WPS, criteria, gate results, and poison pills on the analysis pages.
 
-## Database schema (overview)
+### Search the Knowledge Base
 
-| Table | Purpose |
-|---|---|
-| `users` | Accounts (email, hashed password) |
-| `projects` | Bid projects with metadata and cached parsed RFP |
-| `project_members` | Many-to-many: users ↔ projects with roles (admin/editor) |
-| `sections` | Editable response sections (auto-generated or manual) |
-| `analysis_jobs` | Job tracking (queued / running / complete / error) |
-| `analysis_results` | Full pipeline output stored as JSON columns |
-| `chat_messages` | Per-project chat history |
-| `lookup_docs` | Knowledge base file metadata |
+Upload company files once and reuse them across projects through the Knowledge Base and Ask experiences.
 
-SQLite with WAL mode. The database is created automatically at `data/bidintel.db` on first startup.
+## Backend API Overview
 
----
+### Auth
 
-## Environment variables
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `POST /api/auth/logout`
 
-| Variable | Required | Description |
+### Projects
+
+- `GET /api/projects`
+- `POST /api/projects`
+- `GET /api/projects/{pid}`
+- `PATCH /api/projects/{pid}`
+- `DELETE /api/projects/{pid}`
+- `POST /api/projects/{pid}/members`
+- `DELETE /api/projects/{pid}/members/{uid}`
+
+### Sections
+
+- `GET /api/projects/{pid}/sections`
+- `POST /api/projects/{pid}/sections`
+- `PATCH /api/sections/{sid}`
+- `DELETE /api/sections/{sid}`
+- `POST /api/projects/{pid}/sections/generate`
+- `PATCH /api/projects/{pid}/sections/reorder`
+
+### Analysis
+
+- `POST /api/analysis/start`
+- `GET /api/analysis/stream/{job_id}`
+- `GET /api/analysis/active/{project_id}`
+- `GET /api/analysis/project/{pid}`
+- `GET /api/analysis/result/{aid}`
+
+### Ask
+
+- `GET /api/ask/{pid}/history`
+- `DELETE /api/ask/{pid}/history`
+- `POST /api/ask/{pid}/send`
+
+### Lookup / Knowledge Base
+
+- `GET /api/lookup/docs`
+- `POST /api/lookup/upload`
+- `DELETE /api/lookup/doc/{filename}`
+- `POST /api/lookup/search`
+
+## Data Storage
+
+Runtime data is created under `data/`:
+
+- `data/bidintel.db`: SQLite database
+- `data/uploads/rfp/`: uploaded RFP PDFs
+- `data/uploads/response/`: uploaded response PDFs
+- `data/company_brain/`: raw knowledge-base documents
+- `data/chroma_kb/`: persisted Chroma index for company knowledge
+
+## Environment Variable Reference
+
+| Variable | Required | Purpose |
 |---|---|---|
-| `GROQ_API_KEY` | Yes | Groq API key for all LLM calls |
-| `JWT_SECRET_KEY` | Yes | Secret for signing JWT tokens — use a long random string in production |
-| `FRONTEND_ORIGIN` | Yes | Frontend URL for CORS (`http://localhost:5173` in dev) |
-| `TESSERACT_CMD` | No | Full path to the Tesseract binary (only needed if Tesseract isn't on PATH) |
+| `GROQ_API_KEY` | Yes | Groq API key used by LLM calls |
+| `JWT_SECRET_KEY` | Yes | Secret used to sign JWTs |
+| `FRONTEND_ORIGIN` | Yes | Allowed frontend origin for CORS |
+| `ACCESS_TOKEN_EXPIRE_SECONDS` | No | JWT lifetime in seconds |
+| `TESSERACT_CMD` | No | Path to Tesseract binary if not available on PATH |
+| `GROQ_MAX_RETRIES` | No | Maximum retries for transient Groq failures |
+| `GROQ_RETRY_BASE_DELAY_S` | No | Base retry delay in seconds |
+| `GROQ_RETRY_MAX_DELAY_S` | No | Maximum retry delay in seconds |
+| `GROQ_SYNC_CONCURRENCY` | No | Sync Groq request concurrency limit |
+| `GROQ_ASYNC_CONCURRENCY` | No | Async Groq request concurrency limit |
+| `SCORING_BATCH_WORKERS` | No | Concurrent criterion scoring batch workers |
+| `VITE_API_URL` | No | Frontend override for backend base URL |
 
----
+## Verification and Testing
 
-## Notes for collaborators
+Backend tests:
 
-- **LLM costs:** All LLM calls go through Groq. The free tier has rate limits (~30 req/min). For large RFPs (many chunks) you may hit limits — use a paid tier for production workloads.
-- **Embeddings are local:** The SentenceTransformer model (`all-MiniLM-L6-v2`) runs on-device with no API cost. It downloads automatically on first use (~90 MB).
-- **ChromaDB:** The persistent KB index lives at `data/chroma_kb/`. Don't delete this unless you want to re-index all company brain documents.
-- **SQLite:** Suitable for small teams (up to ~10 concurrent users). For larger deployments, the SQL in `database.py` maps cleanly to PostgreSQL with minor syntax changes.
-- **Analysis state persists across navigation:** `AnalysisContext` keeps the SSE connection alive globally — you can start analysis on one page and check progress on another.
-- **Re-running analysis:** Each run creates a new job and result. Old results accumulate in the DB and are not overwritten.
-- **Legacy Streamlit dashboard:** `dashboard/app.py` is a standalone alternative UI with no auth or DB. Useful for quick one-off analysis without setting up the full stack.
+```bash
+python -m unittest tests.test_reliability_pass
+python -m unittest tests.test_project_creation_requirements
+```
+
+Frontend build:
+
+```bash
+cd frontend
+npm run build
+```
+
+If the local frontend TypeScript install is broken, use:
+
+```bash
+node scripts/repair-frontend-build.mjs
+```
+
+## Troubleshooting
+
+### Frontend build fails because `typescript/lib/tsc.js` is missing
+
+Run:
+
+```bash
+node scripts/repair-frontend-build.mjs
+```
+
+This removes corrupted frontend install artifacts, reinstalls npm packages, verifies TypeScript, runs the build, and cleans generated build output afterward.
+
+### Groq rate limits
+
+The backend now includes retry and concurrency controls, but large analyses can still be slower under tight Groq account limits. If throughput is too low:
+
+- reduce parallel activity
+- increase account quota
+- tune retry and concurrency environment variables
+
+### Scanned PDFs return poor results
+
+Make sure Tesseract is installed and accessible. Without it, OCR fallback cannot recover text from image-only pages.
+
+### The frontend cannot reach the backend
+
+Check:
+
+- backend is running on port `8000`
+- frontend is running on port `5173`
+- `FRONTEND_ORIGIN` is set correctly
+- `VITE_API_URL` is set if you are not using the default local backend URL
+
+## Notes for Developers
+
+- Analysis results accumulate in SQLite and are kept as historical runs.
+- Job execution state is not persisted across server restarts.
+- Company knowledge data and response RFP text are required project fields.
+- Response PDF files are optional supplemental artifacts, not substitutes for the required response text field.
+- The repository still includes `dashboard/app.py` as a legacy Streamlit UI.
+
+## Recommended Next Improvements
+
+- consolidate backend runtime dependencies into a single locked dependency file
+- add `.env.example`
+- add automated frontend tests
+- add end-to-end setup scripts for Windows and macOS/Linux
+- document deployment for production hosting
