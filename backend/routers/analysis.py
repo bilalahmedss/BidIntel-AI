@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -48,11 +48,27 @@ async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], s
         event.setdefault("elapsed_s", round(time.time() - job.started_at, 1))
         loop.call_soon_threadsafe(job.queue.put_nowait, event)
 
+    # Yield immediately so the SSE stream can connect before we start blocking work
+    await asyncio.sleep(0)
+
     try:
         job.status = "running"
         db = get_db()
         db.execute("UPDATE analysis_jobs SET status='running', updated_at=datetime('now') WHERE job_id=?", (job.job_id,))
         db.commit()
+
+        # Run heavy imports in a thread so they don't block the event loop
+        def _do_imports():
+            import importlib
+            importlib.import_module("ingestion.rfp_parser")
+            importlib.import_module("ingestion.response_loader")
+            importlib.import_module("rag.retriever")
+            importlib.import_module("scoring.poison_pill")
+            importlib.import_module("scoring.criterion_scorer")
+            importlib.import_module("scoring.wps_calculator")
+
+        emit({"event": "progress", "step": 1, "total_steps": 5, "label": "Loading analysis modules…", "pct": 1})
+        await asyncio.to_thread(_do_imports)
 
         from ingestion.rfp_parser import parse_rfp_pdf
         from ingestion.response_loader import build_response_index
@@ -65,7 +81,7 @@ async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], s
         # Step 1 — Parse RFP
         def on_chunk_start(current, total):
             emit({"event": "progress", "step": 1, "total_steps": 5,
-                  "label": f"Calling Gemini API — RFP chunk {current}/{total}…",
+                  "label": f"Calling Groq API — RFP chunk {current}/{total}…",
                   "pct": 5 + int((current - 1) / max(total, 1) * 20)})
 
         def on_chunk_done(current, total):
@@ -100,12 +116,33 @@ async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], s
         raw_pages = await asyncio.to_thread(_extract_pages, rfp_path)
         poison_pills = await asyncio.to_thread(detect_poison_pills, pills_raw, raw_pages)
 
-        # Step 3 — Index response
+        # Step 3 — Index response + company brain
+        BRAIN_DIR = Path(__file__).resolve().parents[2] / "data" / "company_brain"
         criterion_results = []
-        if response_path and Path(response_path).exists():
-            emit({"event": "progress", "step": 3, "total_steps": 5, "label": "Indexing bid response…", "pct": 40})
-            response_index = await asyncio.to_thread(build_response_index, response_path)
-            retriever = make_retriever(response_index)
+        has_response = response_path and Path(response_path).exists()
+        has_brain = BRAIN_DIR.exists() and any(BRAIN_DIR.iterdir())
+
+        if has_response or has_brain:
+            retrievers = []
+            if has_response:
+                emit({"event": "progress", "step": 3, "total_steps": 5, "label": "Indexing bid response…", "pct": 40})
+                response_index = await asyncio.to_thread(build_response_index, response_path)
+                retrievers.append(make_retriever(response_index))
+            if has_brain:
+                label = "Indexing company knowledge base…" if not has_response else "Indexing company knowledge base…"
+                emit({"event": "progress", "step": 3, "total_steps": 5, "label": label, "pct": 44})
+                from ingestion.kb_loader import build_kb_index
+                brain_index = await asyncio.to_thread(build_kb_index, str(BRAIN_DIR))
+                retrievers.append(make_retriever(brain_index))
+
+            def combined_retriever(query: str, top_k: int = 3):
+                seen, results = set(), []
+                for ret in retrievers:
+                    for chunk in ret(query, top_k):
+                        if chunk not in seen:
+                            seen.add(chunk)
+                            results.append(chunk)
+                return results
 
             # Step 4 — Score criteria
             total_criteria = sum(len(g.get("criteria", [])) for g in gates)
@@ -119,12 +156,12 @@ async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], s
             emit({"event": "progress", "step": 4, "total_steps": 5,
                   "label": f"Scoring {total_criteria} criteria…", "pct": 50})
             scoring = await asyncio.to_thread(
-                score_extracted_gates, gates, retriever, 3, None, "gemini-2.0-flash", on_criterion
+                score_extracted_gates, gates, combined_retriever, 3, None, "llama-3.3-70b-versatile", on_criterion
             )
             criterion_results = scoring.get("criterion_results", [])
         else:
             emit({"event": "progress", "step": 3, "total_steps": 5,
-                  "label": "No response PDF — skipping scoring", "pct": 50})
+                  "label": "No response PDF or knowledge base — skipping scoring", "pct": 50})
 
         # Step 5 — WPS
         emit({"event": "progress", "step": 5, "total_steps": 5, "label": "Calculating Win Probability Score…", "pct": 92})
@@ -186,7 +223,7 @@ async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], s
 
 
 @router.post("/start")
-async def start_analysis(body: StartIn, bg: BackgroundTasks, user: dict = Depends(get_current_user)):
+async def start_analysis(body: StartIn, user: dict = Depends(get_current_user)):
     db = get_db()
     p = row(db.execute("SELECT * FROM projects WHERE id=?", (body.project_id,)).fetchone())
     db.close()
@@ -208,9 +245,11 @@ async def start_analysis(body: StartIn, bg: BackgroundTasks, user: dict = Depend
     db.commit()
     db.close()
 
-    bg.add_task(_run_pipeline, job, rfp_path,
-                response_path if Path(response_path).exists() else None,
-                body.financial_scenario)
+    asyncio.create_task(_run_pipeline(
+        job, rfp_path,
+        response_path if Path(response_path).exists() else None,
+        body.financial_scenario,
+    ))
     return {"job_id": job_id, "status": "queued"}
 
 

@@ -108,7 +108,7 @@ async def send_message(pid: int, body: AskIn, token: str = Query(...)):
 
     import asyncio
     import sys
-    import google.generativeai as genai
+    from groq import AsyncGroq
     sys.path.insert(0, str(ROOT))
 
     # Persist user message
@@ -133,26 +133,24 @@ async def send_message(pid: int, body: AskIn, token: str = Query(...)):
         f"CONTEXT:\n{context}"
     )
 
-    genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-    llm = genai.GenerativeModel(
-        "gemini-2.0-flash",
-        system_instruction=system,
-        generation_config=genai.GenerationConfig(temperature=0.3, max_output_tokens=1000),
-    )
-
-    # Convert history to Gemini format ("model" instead of "assistant")
-    gemini_history = [
-        {"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]}
-        for m in history
-    ]
+    messages = [{"role": "system", "content": system}]
+    for m in history:
+        messages.append({"role": m["role"], "content": m["content"]})
+    messages.append({"role": "user", "content": body.question})
 
     async def generate():
         full = ""
         try:
-            chat = llm.start_chat(history=gemini_history)
-            response = await chat.send_message_async(body.question, stream=True)
-            async for chunk in response:
-                delta = chunk.text or ""
+            client = AsyncGroq(api_key=os.getenv("GROQ_API_KEY"))
+            stream = await client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=messages,
+                temperature=0.3,
+                max_tokens=1000,
+                stream=True,
+            )
+            async for chunk in stream:
+                delta = chunk.choices[0].delta.content or ""
                 if delta:
                     full += delta
                     yield f"data: {json.dumps({'chunk': delta})}\n\n"

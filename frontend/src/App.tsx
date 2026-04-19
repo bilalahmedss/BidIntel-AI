@@ -8,7 +8,7 @@ import ProjectsPage from './pages/ProjectsPage'
 import ProjectWorkspacePage from './pages/ProjectWorkspacePage'
 import AnalysisPage from './pages/AnalysisPage'
 import AskPage from './pages/AskPage'
-import LookupPage from './pages/LookupPage'
+import KnowledgeBasePage from './pages/KnowledgeBasePage'
 
 function Guards() {
   const { user } = useAuth()
@@ -21,7 +21,7 @@ function Guards() {
         <Route path="/projects/:id/workspace"  element={<ProjectWorkspacePage />} />
         <Route path="/analysis"                element={<AnalysisPage />} />
         <Route path="/ask"                     element={<AskPage />} />
-        <Route path="/lookup"                  element={<LookupPage />} />
+        <Route path="/knowledge-base"          element={<KnowledgeBasePage />} />
         <Route path="*"                        element={<Navigate to="/" />} />
       </Routes>
     </AppShell>

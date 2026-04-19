@@ -1,13 +1,13 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, FolderKanban, ScanText, MessageSquare, Search, LogOut } from 'lucide-react'
+import { LayoutDashboard, FolderKanban, ScanText, MessageSquare, BookOpen, LogOut } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 
 const links = [
-  { to: '/',         label: 'Dashboard',  Icon: LayoutDashboard },
-  { to: '/projects', label: 'Projects',   Icon: FolderKanban },
-  { to: '/analysis', label: 'Analysis',   Icon: ScanText },
-  { to: '/ask',      label: 'Ask',        Icon: MessageSquare },
-  { to: '/lookup',   label: 'LookUp',     Icon: Search },
+  { to: '/',              label: 'Dashboard',       Icon: LayoutDashboard },
+  { to: '/projects',      label: 'Projects',        Icon: FolderKanban },
+  { to: '/analysis',      label: 'Analysis',        Icon: ScanText },
+  { to: '/ask',           label: 'Ask',             Icon: MessageSquare },
+  { to: '/knowledge-base',label: 'Knowledge Base',  Icon: BookOpen },
 ]
 
 export default function Sidebar() {
