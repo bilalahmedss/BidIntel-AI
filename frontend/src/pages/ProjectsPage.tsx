@@ -17,33 +17,21 @@ const initialForm = {
   rfp_id: '',
   deadline: '',
   status: 'draft',
-  company_knowledge_data: '',
-  response_rfp: '',
 }
 
 type CreateProjectForm = typeof initialForm
-type CreateProjectErrors = Partial<Record<'title' | 'company_knowledge_data' | 'response_rfp', string>>
+type CreateProjectErrors = Partial<Record<'title' | 'rfp_pdf' | 'response_pdf', string>>
 
-function validateProjectForm(form: CreateProjectForm): CreateProjectErrors {
+function validateProjectForm(form: CreateProjectForm, rfpFile: File | null, respFile: File | null): CreateProjectErrors {
   const errors: CreateProjectErrors = {}
-
   if (!form.title.trim()) errors.title = 'Project title is required.'
-  if (!form.company_knowledge_data.trim()) {
-    errors.company_knowledge_data = 'Company knowledge data is required.'
-  }
-  if (!form.response_rfp.trim()) {
-    errors.response_rfp = 'Response RFP is required.'
-  }
-
+  if (!rfpFile) errors.rfp_pdf = 'RFP / Tender PDF is required.'
+  if (!respFile) errors.response_pdf = 'Bid Response PDF is required.'
   return errors
 }
 
-function canCreateProject(form: CreateProjectForm) {
-  return Boolean(
-    form.title.trim() &&
-    form.company_knowledge_data.trim() &&
-    form.response_rfp.trim()
-  )
+function canCreateProject(form: CreateProjectForm, rfpFile: File | null, respFile: File | null) {
+  return Boolean(form.title.trim() && rfpFile && respFile)
 }
 
 export default function ProjectsPage() {
@@ -73,17 +61,12 @@ export default function ProjectsPage() {
   })
 
   function updateField<K extends keyof CreateProjectForm>(key: K, value: CreateProjectForm[K]) {
-    const nextForm = { ...form, [key]: value }
-    setForm(nextForm)
-    setFormErrors((prev) => {
-      if (!prev[key as keyof CreateProjectErrors]) return prev
-      return validateProjectForm(nextForm)
-    })
+    setForm((prev) => ({ ...prev, [key]: value }))
   }
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
-    const nextErrors = validateProjectForm(form)
+    const nextErrors = validateProjectForm(form, rfpFile, respFile)
     setFormErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
 
@@ -94,7 +77,7 @@ export default function ProjectsPage() {
     createMut.mutate(fd)
   }
 
-  const createDisabled = createMut.isPending || !canCreateProject(form)
+  const createDisabled = createMut.isPending || !canCreateProject(form, rfpFile, respFile)
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -144,68 +127,32 @@ export default function ProjectsPage() {
               />
             </div>
 
-            <div className="grid gap-4">
-              <label className="block">
-                <span className="text-xs text-slate-300 block mb-1">
-                  Company Knowledge Data <span className="text-red-400">*</span>
-                </span>
-                <textarea
-                  required
-                  rows={5}
-                  value={form.company_knowledge_data}
-                  onChange={(e) => updateField('company_knowledge_data', e.target.value)}
-                  placeholder="Required. Paste the company knowledge data that should travel with this project."
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
-                />
-                {formErrors.company_knowledge_data && (
-                  <p className="mt-1 text-xs text-red-400">{formErrors.company_knowledge_data}</p>
-                )}
-              </label>
-
-              <label className="block">
-                <span className="text-xs text-slate-300 block mb-1">
-                  Response RFP <span className="text-red-400">*</span>
-                </span>
-                <textarea
-                  required
-                  rows={5}
-                  value={form.response_rfp}
-                  onChange={(e) => updateField('response_rfp', e.target.value)}
-                  placeholder="Required. Paste the response RFP or bid response content for this project."
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
-                />
-                {formErrors.response_rfp && (
-                  <p className="mt-1 text-xs text-red-400">{formErrors.response_rfp}</p>
-                )}
-              </label>
-            </div>
-
             <div className="grid grid-cols-2 gap-4">
               <label className="block">
-                <span className="text-xs text-slate-400 block mb-1">RFP / Tender PDF</span>
+                <span className="text-xs text-slate-300 block mb-1">
+                  RFP / Tender PDF <span className="text-red-400">*</span>
+                </span>
                 <input
                   type="file"
                   accept=".pdf"
                   onChange={(e) => setRfpFile(e.target.files?.[0] || null)}
                   className="text-sm text-slate-300 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:bg-slate-700 file:text-slate-200 hover:file:bg-slate-600"
                 />
+                {formErrors.rfp_pdf && <p className="mt-1 text-xs text-red-400">{formErrors.rfp_pdf}</p>}
               </label>
               <label className="block">
-                <span className="text-xs text-slate-400 block mb-1">Bid Response PDF (optional supplement)</span>
+                <span className="text-xs text-slate-300 block mb-1">
+                  Bid Response PDF <span className="text-red-400">*</span>
+                </span>
                 <input
                   type="file"
                   accept=".pdf"
                   onChange={(e) => setRespFile(e.target.files?.[0] || null)}
                   className="text-sm text-slate-300 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:bg-slate-700 file:text-slate-200 hover:file:bg-slate-600"
                 />
+                {formErrors.response_pdf && <p className="mt-1 text-xs text-red-400">{formErrors.response_pdf}</p>}
               </label>
             </div>
-
-            {Object.keys(formErrors).length > 0 && (
-              <p className="text-red-400 text-sm">
-                Company knowledge data and response RFP are required before you can create a project.
-              </p>
-            )}
             {createMut.isError && (
               <p className="text-red-400 text-sm">
                 {(createMut.error as any)?.response?.data?.detail || 'Failed to create project.'}

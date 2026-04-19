@@ -62,58 +62,35 @@ async def create_project(
     rfp_id: str = Form(""),
     deadline: str = Form(""),
     status: str = Form("draft"),
-    company_knowledge_data: Optional[str] = Form(None),
-    response_rfp: Optional[str] = Form(None),
     rfp_pdf: Optional[UploadFile] = File(None),
     response_pdf: Optional[UploadFile] = File(None),
     user: dict = Depends(get_current_user),
 ):
-    """Create a project with required company knowledge data and response RFP text."""
     try:
         payload = ProjectCreate.model_validate(
-            {
-                "title": title,
-                "issuer": issuer,
-                "rfp_id": rfp_id,
-                "deadline": deadline,
-                "status": status,
-                "company_knowledge_data": company_knowledge_data,
-                "response_rfp": response_rfp,
-            }
+            {"title": title, "issuer": issuer, "rfp_id": rfp_id, "deadline": deadline, "status": status}
         )
     except ValidationError as exc:
         raise HTTPException(400, _validation_error_detail(exc))
 
+    if not rfp_pdf or not rfp_pdf.filename:
+        raise HTTPException(400, "RFP PDF is required")
+    if not response_pdf or not response_pdf.filename:
+        raise HTTPException(400, "Response PDF is required")
+
     db = get_db()
     cur = db.execute(
-        """
-        INSERT INTO projects (
-            owner_id, title, rfp_id, issuer, status, deadline, company_knowledge_data, response_rfp
-        ) VALUES (?,?,?,?,?,?,?,?)
-        """,
-        (
-            user["id"],
-            payload.title,
-            payload.rfp_id,
-            payload.issuer,
-            payload.status,
-            payload.deadline,
-            payload.company_knowledge_data,
-            payload.response_rfp,
-        ),
+        "INSERT INTO projects (owner_id, title, rfp_id, issuer, status, deadline) VALUES (?,?,?,?,?,?)",
+        (user["id"], payload.title, payload.rfp_id, payload.issuer, payload.status, payload.deadline),
     )
     pid = cur.lastrowid
     db.execute("INSERT INTO project_members (project_id, user_id, role) VALUES (?,?,?)", (pid, user["id"], "admin"))
 
-    rfp_fn, resp_fn = "", ""
-    if rfp_pdf and rfp_pdf.filename:
-        await _save_file(pid, "rfp", rfp_pdf)
-        rfp_fn = rfp_pdf.filename
-    if response_pdf and response_pdf.filename:
-        await _save_file(pid, "response", response_pdf)
-        resp_fn = response_pdf.filename
+    await _save_file(pid, "rfp", rfp_pdf)
+    await _save_file(pid, "response", response_pdf)
 
-    db.execute("UPDATE projects SET rfp_filename=?, response_filename=? WHERE id=?", (rfp_fn, resp_fn, pid))
+    db.execute("UPDATE projects SET rfp_filename=?, response_filename=? WHERE id=?",
+               (rfp_pdf.filename, response_pdf.filename, pid))
     db.commit()
     p = row(db.execute("SELECT * FROM projects WHERE id=?", (pid,)).fetchone())
     out = _project_out(p, db)
@@ -141,8 +118,6 @@ async def update_project(
     rfp_id: Optional[str] = Form(None),
     deadline: Optional[str] = Form(None),
     status: Optional[str] = Form(None),
-    company_knowledge_data: Optional[str] = Form(None),
-    response_rfp: Optional[str] = Form(None),
     rfp_pdf: Optional[UploadFile] = File(None),
     response_pdf: Optional[UploadFile] = File(None),
     user: dict = Depends(get_current_user),
@@ -160,14 +135,11 @@ async def update_project(
             "rfp_id": rfp_id,
             "deadline": deadline,
             "status": status,
-            "company_knowledge_data": company_knowledge_data,
-            "response_rfp": response_rfp,
         }.items()
         if v is not None
     }
-    for required_field in ("title", "company_knowledge_data", "response_rfp"):
-        if required_field in updates and not updates[required_field]:
-            raise HTTPException(400, f"{required_field}: This field is required")
+    if "title" in updates and not updates["title"]:
+        raise HTTPException(400, "title: This field is required")
     if rfp_pdf and rfp_pdf.filename:
         await _save_file(pid, "rfp", rfp_pdf)
         updates["rfp_filename"] = rfp_pdf.filename
