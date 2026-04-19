@@ -63,6 +63,91 @@ def _verdict_from_bands(score_value: float, bands: Dict[str, float]) -> str:
     return "Weak"
 
 
+def _calculate_equal_weight_wps(
+    extracted_gates: List[Dict[str, Any]],
+    criterion_scores: List[Dict[str, Any]],
+    scenario_key: str,
+) -> Dict[str, Any]:
+    """
+    Equal-weight scoring: each criterion is worth 100/N points.
+    WPS = (met_criteria / total_criteria) * 100.
+    Scenarios apply a small multiplier to model bid confidence, not financials.
+    """
+    total = len(criterion_scores)
+    if total == 0:
+        return {
+            "pq_gate": 1,
+            "gate_results": [],
+            "scenarios": {s: {"wps": 0.0, "met": 0, "total": 0, "pct": 0.0} for s in ("conservative", "expected", "optimistic")},
+            "binding_constraint": "no criteria found",
+            "verdict": "Weak",
+        }
+
+    status_map = {str(s.get("criterion_id", "")): s.get("status", "MISSING") for s in criterion_scores}
+    met = sum(1 for s in status_map.values() if s == "PRESENT")
+    base_pct = round((met / total) * 100, 2)
+
+    scenario_multipliers = {"conservative": 0.90, "expected": 1.00, "optimistic": 1.10}
+    scenarios: Dict[str, Any] = {}
+    for key, mult in scenario_multipliers.items():
+        wps = round(min(base_pct * mult, 100.0), 2)
+        scenarios[key] = {"wps": wps, "met": met, "total": total, "pct": base_pct}
+
+    gate_results: List[Dict[str, Any]] = []
+    for gate in extracted_gates:
+        gate_id = str(gate.get("gate_id", "") or "")
+        gate_name = str(gate.get("name", "") or "")
+        criteria = gate.get("criteria") or []
+        gate_met = sum(1 for c in criteria if status_map.get(str(c.get("id", ""))) == "PRESENT")
+        gate_results.append({
+            "gate_id": gate_id,
+            "name": gate_name,
+            "type": gate.get("type", "scored"),
+            "met": gate_met,
+            "total": len(criteria),
+            "passed": True,
+        })
+
+    selected_wps = scenarios[scenario_key]["wps"]
+    bands = {"strong": 80.0, "competitive": 60.0, "borderline": 40.0}
+    verdict = _verdict_from_bands(selected_wps, bands)
+
+    return {
+        "pq_gate": 1,
+        "gate_results": gate_results,
+        "scenarios": scenarios,
+        "binding_constraint": f"equal-weight scoring: {met}/{total} requirements met ({base_pct}%)",
+        "verdict": verdict,
+    }
+
+
+def _apply_equal_weightage(
+    extracted_gates: List[Dict[str, Any]],
+    criterion_scores: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """
+    When the RFP has no explicit point values, assign equal weight to every
+    criterion so that score = (met / total) * 100.
+    """
+    all_criteria = [c for g in extracted_gates for c in (g.get("criteria") or [])]
+    total = len(all_criteria)
+    if total == 0:
+        return criterion_scores
+
+    weight = round(100.0 / total, 6)
+    status_lookup = {str(s.get("criterion_id", "")): s.get("status", "MISSING") for s in criterion_scores}
+    patched: List[Dict[str, Any]] = []
+    for entry in criterion_scores:
+        cid = str(entry.get("criterion_id", ""))
+        status = status_lookup.get(cid, "MISSING")
+        patched.append({
+            **entry,
+            "max_points": weight,
+            "score": weight if status == "PRESENT" else 0.0,
+        })
+    return patched
+
+
 def calculate_wps(
     extracted_gates: List[Dict[str, Any]],
     criterion_scores: List[Dict[str, Any]],
@@ -71,6 +156,12 @@ def calculate_wps(
     scenario_key = (financial_scenario or "expected").strip().lower()
     if scenario_key not in {"conservative", "expected", "optimistic"}:
         raise ValueError("financial_scenario must be one of: conservative, expected, optimistic")
+
+    # If the RFP specifies no point values, use equal weightage: score = (met / total) * 100
+    all_criteria = [c for g in extracted_gates for c in (g.get("criteria") or [])]
+    all_zero = all_criteria and all(float(c.get("max_points", 0) or 0) == 0.0 for c in all_criteria)
+    if all_zero:
+        return _calculate_equal_weight_wps(extracted_gates, criterion_scores, scenario_key)
 
     score_map = _criterion_score_map(criterion_scores)
     gate_results: List[Dict[str, Any]] = []
