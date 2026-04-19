@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from backend.deps import get_current_user, get_current_user_from_token
 from backend.groq_client import create_streaming_completion
 from backend.database import get_db, row, rows
+from backend.safety import QuerySafetyLayer
 
 router = APIRouter()
 
@@ -17,6 +18,7 @@ UPLOAD_DIR = ROOT / "data" / "uploads"
 BRAIN_DIR = ROOT / "data" / "company_brain"
 
 _response_index_cache: dict = {}
+_safety = QuerySafetyLayer()
 
 
 def _build_context(project_id: int, question: str) -> str:
@@ -147,7 +149,30 @@ async def send_message(pid: int, body: AskIn, token: str = Query(...)):
     import sys
     sys.path.insert(0, str(ROOT))
 
-    # Persist user message
+    _safety.record_event(
+        route="ask",
+        context="llm_boundary",
+        event_type="confidentiality_notice_enforced",
+        action_taken="warn_allow",
+        user_id=user_id,
+        metadata={"project_id": pid},
+    )
+
+    if _safety.detect_prompt_injection(body.question):
+        _safety.record_event(
+            route="ask",
+            context="user_chat_query",
+            event_type="prompt_injection_detected",
+            action_taken="guarded_prompt_applied",
+            user_id=user_id,
+            metadata={"project_id": pid},
+        )
+
+    safe_question, redacted_types = _safety.redact_pii(body.question)
+    if redacted_types:
+        _safety.log_intervention(str(user_id), redacted_types, "user_chat_query", route="ask")
+
+    # Persist original user message in our own database.
     db = get_db()
     db.execute("INSERT INTO chat_messages (project_id, user_id, role, content) VALUES (?,?,?,?)",
                (pid, user_id, "user", body.question))
@@ -161,21 +186,35 @@ async def send_message(pid: int, body: AskIn, token: str = Query(...)):
     db.close()
     history = list(reversed(history[1:]))  # exclude the one we just added
 
-    context = await asyncio.to_thread(_build_context, pid, body.question)
+    context = await asyncio.to_thread(_build_context, pid, safe_question)
     system = (
         "You are BidIntel AI, an expert assistant for bid managers and proposal writers. "
         "Answer concisely and professionally using the provided context. "
         "If the context doesn't contain the answer, say so clearly.\n\n"
         f"CONTEXT:\n{context}"
     )
+    guarded_system = _safety.build_guarded_system_prompt(system)
 
-    messages = [{"role": "system", "content": system}]
+    messages = [{"role": "system", "content": guarded_system}]
     for m in history:
-        messages.append({"role": m["role"], "content": m["content"]})
-    messages.append({"role": "user", "content": body.question})
+        if _safety.detect_prompt_injection(m["content"]):
+            _safety.record_event(
+                route="ask",
+                context="chat_history",
+                event_type="prompt_injection_detected",
+                action_taken="guarded_prompt_applied",
+                user_id=user_id,
+                metadata={"project_id": pid},
+            )
+        safe_history_content, history_redacted_types = _safety.redact_pii(m["content"])
+        if history_redacted_types:
+            _safety.log_intervention(str(user_id), history_redacted_types, "chat_history", route="ask")
+        messages.append({"role": m["role"], "content": safe_history_content})
+    messages.append({"role": "user", "content": safe_question})
 
     async def generate():
         full = ""
+        yielded_chunks: list[str] = []
         try:
             stream = await create_streaming_completion(
                 model="llama-3.3-70b-versatile",
@@ -187,14 +226,22 @@ async def send_message(pid: int, body: AskIn, token: str = Query(...)):
                 delta = chunk.choices[0].delta.content or ""
                 if delta:
                     full += delta
+                    yielded_chunks.append(delta)
                     yield f"data: {json.dumps({'chunk': delta})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'chunk': f'Error: {e}'})}\n\n"
             full = f"Error: {e}"
         finally:
+            safe_full = _safety.check_output(full)
+            if safe_full != full:
+                _safety.log_intervention(str(user_id), ["UNSAFE_OUTPUT"], "llm_response", route="ask")
+                if yielded_chunks:
+                    yield f"data: {json.dumps({'replace': safe_full})}\n\n"
+                else:
+                    yield f"data: {json.dumps({'chunk': safe_full})}\n\n"
             db2 = get_db()
             db2.execute("INSERT INTO chat_messages (project_id, user_id, role, content) VALUES (?,?,?,?)",
-                        (pid, user_id, "assistant", full))
+                        (pid, user_id, "assistant", safe_full))
             db2.commit()
             db2.close()
             yield f"data: {json.dumps({'done': True})}\n\n"

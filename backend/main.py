@@ -19,7 +19,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.database import init_db
-from backend.routers import auth, projects, sections, analysis, ask, lookup
+from backend.routers import auth, projects, sections, analysis, ask, lookup, safety_dashboard
 
 
 @asynccontextmanager
@@ -44,6 +44,7 @@ app.include_router(sections.router, prefix="/api",          tags=["sections"])
 app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"])
 app.include_router(ask.router,      prefix="/api/ask",      tags=["ask"])
 app.include_router(lookup.router,   prefix="/api/lookup",   tags=["lookup"])
+app.include_router(safety_dashboard.router, prefix="/api/safety", tags=["safety"])
 
 
 @app.get("/api/health")

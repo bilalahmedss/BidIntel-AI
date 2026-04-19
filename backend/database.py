@@ -103,6 +103,20 @@ CREATE TABLE IF NOT EXISTS lookup_docs (
     uploaded_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
     uploaded_at TEXT    NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS safety_events (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id        INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    route          TEXT    NOT NULL,
+    context        TEXT    NOT NULL,
+    event_type     TEXT    NOT NULL,
+    entity_types_json TEXT NOT NULL DEFAULT '[]',
+    action_taken   TEXT    NOT NULL DEFAULT '',
+    metadata_json  TEXT    NOT NULL DEFAULT '{}',
+    created_at     TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_safety_events_created ON safety_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_safety_events_route ON safety_events(route, created_at DESC);
 """
 
 
@@ -122,6 +136,9 @@ def init_db() -> None:
             )
         if "response_rfp" not in project_columns:
             conn.execute("ALTER TABLE projects ADD COLUMN response_rfp TEXT NOT NULL DEFAULT ''")
+        safety_columns = {r[1] for r in conn.execute("PRAGMA table_info(safety_events)").fetchall()}
+        if "metadata_json" not in safety_columns:
+            conn.execute("ALTER TABLE safety_events ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{}'")
     # Reset any stuck running jobs from a previous crash
     conn = get_db()
     try:
