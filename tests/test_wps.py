@@ -1,11 +1,11 @@
 import json
 from pathlib import Path
 
-from bidintel.scoring.wps_calculator import calculate_wps
+from scoring.wps_calculator import calculate_wps
 
 
 def main() -> int:
-    outputs_dir = Path("bidintel/data/outputs")
+    outputs_dir = Path("data/outputs")
     parsed_path = outputs_dir / "parsed_rfp.json"
     scorer_path = outputs_dir / "scorer_results.json"
 

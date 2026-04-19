@@ -1,12 +1,12 @@
 import json
 from pathlib import Path
 
-from bidintel.rag.retriever import retrieve
-from bidintel.scoring.criterion_scorer import score_extracted_gates
+from rag.retriever import retrieve
+from scoring.criterion_scorer import score_extracted_gates
 
 
 def main() -> int:
-    outputs_dir = Path("bidintel/data/outputs")
+    outputs_dir = Path("data/outputs")
     outputs_dir.mkdir(parents=True, exist_ok=True)
 
     parsed_path = outputs_dir / "parsed_rfp.json"

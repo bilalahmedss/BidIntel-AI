@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from bidintel.rag.retriever import retrieve
+from rag.retriever import retrieve
 
 
 def _infer_source_file(chunk: str) -> str:
@@ -42,7 +42,7 @@ def main() -> int:
     full_output = "\n\n---\n\n".join(output_sections)
     print(full_output)
 
-    output_path = Path("bidintel/data/outputs/retriever_output.txt")
+    output_path = Path("data/outputs/retriever_output.txt")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(full_output, encoding="utf-8")
     print(f"\nSaved retrieval output to: {output_path}")

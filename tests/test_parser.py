@@ -2,15 +2,15 @@ import json
 import sys
 from pathlib import Path
 
-from bidintel.ingestion.rfp_parser import parse_rfp_pdf
+from ingestion.rfp_parser import parse_rfp_pdf
 
 
 def main() -> int:
-    tenders_dir = Path("bidintel/data/tenders")
+    tenders_dir = Path("data/tenders")
     pdfs = sorted(tenders_dir.glob("*.pdf"))
 
     if not pdfs:
-        print("ERROR: No PDF found in bidintel/data/tenders. Please add an RFP PDF and re-run.")
+        print("ERROR: No PDF found in data/tenders. Please add an RFP PDF and re-run.")
         return 1
 
     pdf_file = pdfs[0]
@@ -20,7 +20,7 @@ def main() -> int:
     parsed = parse_rfp_pdf(pdf_path)
     print(json.dumps(parsed, indent=2))
 
-    outputs_dir = Path("bidintel/data/outputs")
+    outputs_dir = Path("data/outputs")
     output_path = outputs_dir / "parsed_rfp.json"
 
     output_path.parent.mkdir(parents=True, exist_ok=True)

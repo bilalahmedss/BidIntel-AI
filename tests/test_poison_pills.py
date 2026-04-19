@@ -3,8 +3,8 @@ from pathlib import Path
 
 from ingestion.pdf_utils import extract_pdf_pages
 
-from bidintel.ingestion.rfp_parser import parse_rfp_pdf
-from bidintel.scoring.poison_pill import detect_poison_pills
+from ingestion.rfp_parser import parse_rfp_pdf
+from scoring.poison_pill import detect_poison_pills
 
 
 def _extract_raw_pages(pdf_path: str):
@@ -12,16 +12,16 @@ def _extract_raw_pages(pdf_path: str):
 
 
 def main() -> int:
-    tenders_dir = Path("bidintel/data/tenders")
+    tenders_dir = Path("data/tenders")
     pdfs = sorted(tenders_dir.glob("*.pdf"))
     if not pdfs:
-        print("ERROR: No PDF found in bidintel/data/tenders.")
+        print("ERROR: No PDF found in data/tenders.")
         return 1
 
     pdf_path = str(pdfs[0])
     print(f"Using PDF: {pdf_path}")
 
-    parsed_json_path = Path("bidintel/data/outputs/parsed_rfp.json")
+    parsed_json_path = Path("data/outputs/parsed_rfp.json")
     if parsed_json_path.exists():
         parsed = json.loads(parsed_json_path.read_text(encoding="utf-8"))
         print(f"Loaded parsed JSON from: {parsed_json_path}")
@@ -37,7 +37,7 @@ def main() -> int:
         print(item.get("clause_text", ""))
         print()
 
-    outputs_dir = Path("bidintel/data/outputs")
+    outputs_dir = Path("data/outputs")
     outputs_dir.mkdir(parents=True, exist_ok=True)
     output_path = outputs_dir / "poison_pill_results.json"
     output_path.write_text(json.dumps(findings, indent=2), encoding="utf-8")
