@@ -45,6 +45,16 @@ streamlit_log.txt
 # macOS
 .DS_Store
 
+# Node
+node_modules/
+frontend/node_modules/
+
 # Data / DBs
 *.sqlite3
 *.db
+*.db-shm
+*.db-wal
+data/uploads/
+data/chroma_kb/
+data/company_brain/
+data/company_brain_strong/

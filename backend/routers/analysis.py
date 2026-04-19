@@ -1,10 +1,13 @@
 import asyncio
 import json
+import logging
 import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger("bidintel.analysis")
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
@@ -52,6 +55,9 @@ async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], s
 
     try:
         job.status = "running"
+        logger.info("[job=%s] Pipeline started | project=%s scenario=%s", job.job_id[:8], job.project_id, scenario)
+        logger.info("[job=%s] RFP path: %s", job.job_id[:8], rfp_path)
+        logger.info("[job=%s] Response path: %s (exists=%s)", job.job_id[:8], response_path, Path(response_path).exists() if response_path else False)
         db = get_db()
         db.execute("UPDATE analysis_jobs SET status='running', updated_at=datetime('now') WHERE job_id=?", (job.job_id,))
         db.commit()
@@ -89,6 +95,7 @@ async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], s
                   "pct": 5 + int(current / max(total, 1) * 20)})
 
         emit({"event": "progress", "step": 1, "total_steps": 5, "label": "Reading RFP PDF…", "pct": 3})
+        logger.info("[job=%s] Step 1: Parsing RFP PDF", job.job_id[:8])
         parsed = await asyncio.to_thread(
             parse_rfp_pdf, rfp_path,
             on_chunk_progress=on_chunk_done,
@@ -96,6 +103,7 @@ async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], s
         )
         gates = parsed.get("gates", [])
         pills_raw = parsed.get("poison_pill_clauses", [])
+        logger.info("[job=%s] Step 1 done: %d gates, %d poison pill clauses extracted", job.job_id[:8], len(gates), len(pills_raw))
 
         # Cache parsed RFP in project
         db.execute("UPDATE projects SET parsed_rfp_json=?, updated_at=datetime('now') WHERE id=?",
@@ -104,18 +112,21 @@ async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], s
 
         # Step 2 — Poison pills
         emit({"event": "progress", "step": 2, "total_steps": 5, "label": "Detecting poison pill clauses…", "pct": 28})
+        logger.info("[job=%s] Step 2: Detecting poison pills", job.job_id[:8])
 
         def _extract_pages(path):
             return extract_pdf_pages(path)
 
         raw_pages = await asyncio.to_thread(_extract_pages, rfp_path)
         poison_pills = await asyncio.to_thread(detect_poison_pills, pills_raw, raw_pages)
+        logger.info("[job=%s] Step 2 done: %d poison pills detected", job.job_id[:8], len(poison_pills))
 
         # Step 3 — Index response + company brain
         BRAIN_DIR = Path(__file__).resolve().parents[2] / "data" / "company_brain"
         criterion_results = []
         has_response = response_path and Path(response_path).exists()
         has_brain = BRAIN_DIR.exists() and any(BRAIN_DIR.iterdir())
+        logger.info("[job=%s] Step 3: has_response=%s has_brain=%s", job.job_id[:8], has_response, has_brain)
 
         if has_response or has_brain:
             retrievers = []
@@ -148,23 +159,32 @@ async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], s
                       "label": f"Scoring criteria ({current}/{total}): {name[:50]}",
                       "pct": pct})
 
+            logger.info("[job=%s] Step 4: Scoring %d criteria across %d gates", job.job_id[:8], total_criteria, len(gates))
             emit({"event": "progress", "step": 4, "total_steps": 5,
                   "label": f"Scoring {total_criteria} criteria…", "pct": 50})
             scoring = await asyncio.to_thread(
                 score_extracted_gates, gates, combined_retriever, 3, None, "llama-3.3-70b-versatile", on_criterion
             )
             criterion_results = scoring.get("criterion_results", [])
+            present = sum(1 for c in criterion_results if c.get("status") == "PRESENT")
+            logger.info("[job=%s] Step 4 done: %d/%d criteria PRESENT", job.job_id[:8], present, len(criterion_results))
         else:
+            logger.warning("[job=%s] Step 3: No response PDF or knowledge base — skipping scoring", job.job_id[:8])
             emit({"event": "progress", "step": 3, "total_steps": 5,
                   "label": "No response PDF or knowledge base — skipping scoring", "pct": 50})
 
         # Step 5 — WPS
         emit({"event": "progress", "step": 5, "total_steps": 5, "label": "Calculating Win Probability Score…", "pct": 92})
+        logger.info("[job=%s] Step 5: Calculating WPS", job.job_id[:8])
         wps_results = {}
         for s in ["conservative", "expected", "optimistic"]:
             wps_results[s] = calculate_wps(gates, criterion_results, financial_scenario=s)
 
         selected = wps_results[scenario]
+        logger.info("[job=%s] Step 5 done: verdict=%s wps=%.2f (scenario=%s) | constraint: %s",
+                    job.job_id[:8], selected.get("verdict"),
+                    selected.get("scenarios", {}).get(scenario, {}).get("wps", 0),
+                    scenario, selected.get("binding_constraint", ""))
 
         # Store results
         cur = db.execute(

@@ -49,7 +49,7 @@ def build_kb_index(
     if not os.path.isdir(source_dir):
         raise FileNotFoundError(f"Source directory does not exist: {source_dir}")
 
-    reader = SimpleDirectoryReader(input_dir=source_dir, required_exts=[".pdf", ".txt"], recursive=True)
+    reader = SimpleDirectoryReader(input_dir=source_dir, required_exts=[".pdf", ".txt"], recursive=True, exclude_hidden=False)
     documents = reader.load_data()
     if not documents:
         raise ValueError(f"No .pdf or .txt documents found in: {source_dir}")

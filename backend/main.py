@@ -1,3 +1,4 @@
+import logging
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -8,6 +9,11 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+
+_handler = logging.StreamHandler()
+_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s", datefmt="%H:%M:%S"))
+logging.getLogger("bidintel").addHandler(_handler)
+logging.getLogger("bidintel").setLevel(logging.INFO)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

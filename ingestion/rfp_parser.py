@@ -178,8 +178,9 @@ class RFPParser:
             raise ValueError(f"Model returned invalid JSON: {exc}\nRaw output:\n{raw}") from exc
         if not isinstance(parsed, dict):
             raise ValueError("Model output must be a JSON object.")
-        validated = validate_rfp_extraction_payload(parsed)
-        return self._normalize_schema(validated.model_dump())
+        normalized = self._normalize_schema(parsed)
+        validated = validate_rfp_extraction_payload(normalized)
+        return validated.model_dump()
 
     def _build_text_chunks_with_overlap(self, pages: List[Dict[str, Any]]) -> List[str]:
         # Keep input comfortably below model/account limits after adding prompt + completion budget.

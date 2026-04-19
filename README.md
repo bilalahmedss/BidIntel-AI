@@ -132,35 +132,20 @@ git clone <your-repo-url>
 cd BidIntel-AI
 ```
 
-### 2. Create a Python Virtual Environment
+### 2. Create a Python Virtual Environment and Install Dependencies
 
-Windows PowerShell:
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-macOS / Linux:
+Uses [uv](https://github.com/astral-sh/uv) for fast dependency management.
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-### 3. Install Backend Dependencies
-
-`requirements-backend.txt` does not currently include every runtime package used by the analysis pipeline, so install the backend requirements first and then the retrieval / embedding packages explicitly:
-
-```bash
-pip install -r requirements-backend.txt
-pip install chromadb llama-index llama-index-vector-stores-chroma sentence-transformers pymupdf
+uv venv .venv
+uv pip install -r requirements-backend.txt
+uv pip install chromadb llama-index llama-index-vector-stores-chroma sentence-transformers pymupdf
 ```
 
 If you want the legacy Streamlit dashboard too:
 
 ```bash
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 ```
 
 ### 4. Install Frontend Dependencies
@@ -201,10 +186,16 @@ VITE_API_URL=http://localhost:8000
 
 ### 6. Run the Application
 
-Backend:
+Backend (scoped reload avoids watching `.venv`):
 
 ```bash
-uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+.venv/Scripts/python.exe -m uvicorn backend.main:app --reload --reload-dir backend --reload-dir ingestion --reload-dir rag --reload-dir scoring --host 0.0.0.0 --port 8000
+```
+
+macOS / Linux:
+
+```bash
+.venv/bin/python -m uvicorn backend.main:app --reload --reload-dir backend --reload-dir ingestion --reload-dir rag --reload-dir scoring --host 0.0.0.0 --port 8000
 ```
 
 Frontend:
