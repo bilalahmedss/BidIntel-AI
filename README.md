@@ -57,8 +57,6 @@ BidIntel-AI/
 |-- scoring/
 |-- tests/
 |-- scripts/
-|-- dashboard/
-|-- requirements-backend.txt
 `-- requirements.txt
 ```
 
@@ -134,18 +132,24 @@ cd BidIntel-AI
 
 ### 2. Create a Python Virtual Environment and Install Dependencies
 
-Uses [uv](https://github.com/astral-sh/uv) for fast dependency management.
+**Windows:**
 
 ```bash
-uv venv .venv
-uv pip install -r requirements-backend.txt
-uv pip install chromadb llama-index llama-index-vector-stores-chroma sentence-transformers pymupdf
+python -m venv .venv
+.venv\Scripts\activate
 ```
 
-If you want the legacy Streamlit dashboard too:
+**macOS / Linux:**
 
 ```bash
-uv pip install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+Then install dependencies:
+
+```bash
+pip install -r requirements.txt
 ```
 
 ### 4. Install Frontend Dependencies
@@ -186,16 +190,18 @@ VITE_API_URL=http://localhost:8000
 
 ### 6. Run the Application
 
-Backend (scoped reload avoids watching `.venv`):
+Make sure your virtual environment is activated (step 2), then start the backend:
+
+**Windows:**
 
 ```bash
-.venv/Scripts/python.exe -m uvicorn backend.main:app --reload --reload-dir backend --reload-dir ingestion --reload-dir rag --reload-dir scoring --host 0.0.0.0 --port 8000
+python -m uvicorn backend.main:app --reload --reload-dir backend --reload-dir ingestion --reload-dir rag --reload-dir scoring --host 0.0.0.0 --port 8000
 ```
 
-macOS / Linux:
+**macOS / Linux:**
 
 ```bash
-.venv/bin/python -m uvicorn backend.main:app --reload --reload-dir backend --reload-dir ingestion --reload-dir rag --reload-dir scoring --host 0.0.0.0 --port 8000
+python3 -m uvicorn backend.main:app --reload --reload-dir backend --reload-dir ingestion --reload-dir rag --reload-dir scoring --host 0.0.0.0 --port 8000
 ```
 
 Frontend:
@@ -414,7 +420,6 @@ Check:
 - Job execution state is not persisted across server restarts.
 - Company knowledge data and response RFP text are required project fields.
 - Response PDF files are optional supplemental artifacts, not substitutes for the required response text field.
-- The repository still includes `dashboard/app.py` as a legacy Streamlit UI.
 
 ## Recommended Next Improvements
 
