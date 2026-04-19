@@ -272,17 +272,39 @@ async def start_analysis(body: StartIn, user: dict = Depends(get_current_user)):
 async def stream(job_id: str, token: str = Query(...)):
     get_current_user_from_token(token)
     job = _jobs.get(job_id)
-    if not job:
+
+    if job:
+        async def generate_live():
+            while True:
+                event = await job.queue.get()
+                if event is None:
+                    break
+                yield f"data: {json.dumps(event)}\n\n"
+        return StreamingResponse(generate_live(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    # Job not in memory — fall back to DB for completed/errored jobs
+    db = get_db()
+    db_job = row(db.execute(
+        "SELECT aj.status, aj.error_message, ar.id as result_id "
+        "FROM analysis_jobs aj LEFT JOIN analysis_results ar ON ar.job_id=aj.job_id "
+        "WHERE aj.job_id=?", (job_id,)
+    ).fetchone())
+    db.close()
+
+    if not db_job:
         raise HTTPException(404, "Job not found")
 
-    async def generate():
-        while True:
-            event = await job.queue.get()
-            if event is None:
-                break
-            yield f"data: {json.dumps(event)}\n\n"
+    if db_job["status"] == "complete":
+        event = json.dumps({"event": "complete", "job_id": job_id, "analysis_id": db_job["result_id"], "pct": 100})
+    else:
+        msg = db_job.get("error_message") or "Job did not complete"
+        event = json.dumps({"event": "error", "message": msg})
 
-    return StreamingResponse(generate(), media_type="text/event-stream",
+    async def generate_synthetic():
+        yield f"data: {event}\n\n"
+
+    return StreamingResponse(generate_synthetic(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
