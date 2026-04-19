@@ -29,9 +29,13 @@ def verify_password(password: str, stored: str) -> bool:
         return False
 
 
-def create_token(user_id: int, email: str) -> str:
+def create_token(user_id: int, email: str, token_version: int = 0) -> str:
     exp = datetime.now(timezone.utc) + timedelta(seconds=EXPIRE_SECONDS)
-    return jwt.encode({"sub": str(user_id), "email": email, "exp": exp}, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(
+        {"sub": str(user_id), "email": email, "ver": int(token_version), "exp": exp},
+        SECRET_KEY,
+        algorithm=ALGORITHM,
+    )
 
 
 def decode_token(token: str) -> Optional[dict]:

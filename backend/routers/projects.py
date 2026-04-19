@@ -4,10 +4,11 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from backend.database import get_db, row, rows
 from backend.deps import get_current_user
+from backend.schemas import ProjectCreate
 
 router = APIRouter()
 
@@ -37,6 +38,14 @@ def _project_out(p: dict, db) -> dict:
             "parsed_rfp_json": None}
 
 
+def _validation_error_detail(exc: ValidationError) -> str:
+    messages = []
+    for err in exc.errors():
+        field = ".".join(str(part) for part in err["loc"])
+        messages.append(f"{field}: {err['msg']}")
+    return "; ".join(messages)
+
+
 @router.get("")
 def list_projects(user: dict = Depends(get_current_user)):
     db = get_db()
@@ -48,19 +57,50 @@ def list_projects(user: dict = Depends(get_current_user)):
 
 @router.post("", status_code=201)
 async def create_project(
-    title: str = Form(...),
+    title: Optional[str] = Form(None),
     issuer: str = Form(""),
     rfp_id: str = Form(""),
     deadline: str = Form(""),
     status: str = Form("draft"),
+    company_knowledge_data: Optional[str] = Form(None),
+    response_rfp: Optional[str] = Form(None),
     rfp_pdf: Optional[UploadFile] = File(None),
     response_pdf: Optional[UploadFile] = File(None),
     user: dict = Depends(get_current_user),
 ):
+    """Create a project with required company knowledge data and response RFP text."""
+    try:
+        payload = ProjectCreate.model_validate(
+            {
+                "title": title,
+                "issuer": issuer,
+                "rfp_id": rfp_id,
+                "deadline": deadline,
+                "status": status,
+                "company_knowledge_data": company_knowledge_data,
+                "response_rfp": response_rfp,
+            }
+        )
+    except ValidationError as exc:
+        raise HTTPException(400, _validation_error_detail(exc))
+
     db = get_db()
     cur = db.execute(
-        "INSERT INTO projects (owner_id, title, rfp_id, issuer, status, deadline) VALUES (?,?,?,?,?,?)",
-        (user["id"], title.strip(), rfp_id.strip(), issuer.strip(), status, deadline),
+        """
+        INSERT INTO projects (
+            owner_id, title, rfp_id, issuer, status, deadline, company_knowledge_data, response_rfp
+        ) VALUES (?,?,?,?,?,?,?,?)
+        """,
+        (
+            user["id"],
+            payload.title,
+            payload.rfp_id,
+            payload.issuer,
+            payload.status,
+            payload.deadline,
+            payload.company_knowledge_data,
+            payload.response_rfp,
+        ),
     )
     pid = cur.lastrowid
     db.execute("INSERT INTO project_members (project_id, user_id, role) VALUES (?,?,?)", (pid, user["id"], "admin"))
@@ -101,6 +141,8 @@ async def update_project(
     rfp_id: Optional[str] = Form(None),
     deadline: Optional[str] = Form(None),
     status: Optional[str] = Form(None),
+    company_knowledge_data: Optional[str] = Form(None),
+    response_rfp: Optional[str] = Form(None),
     rfp_pdf: Optional[UploadFile] = File(None),
     response_pdf: Optional[UploadFile] = File(None),
     user: dict = Depends(get_current_user),
@@ -110,8 +152,22 @@ async def update_project(
     if not p:
         raise HTTPException(404, "Project not found")
 
-    updates = {k: v for k, v in {"title": title, "issuer": issuer, "rfp_id": rfp_id,
-                                   "deadline": deadline, "status": status}.items() if v is not None}
+    updates = {
+        k: v.strip() if isinstance(v, str) else v
+        for k, v in {
+            "title": title,
+            "issuer": issuer,
+            "rfp_id": rfp_id,
+            "deadline": deadline,
+            "status": status,
+            "company_knowledge_data": company_knowledge_data,
+            "response_rfp": response_rfp,
+        }.items()
+        if v is not None
+    }
+    for required_field in ("title", "company_knowledge_data", "response_rfp"):
+        if required_field in updates and not updates[required_field]:
+            raise HTTPException(400, f"{required_field}: This field is required")
     if rfp_pdf and rfp_pdf.filename:
         await _save_file(pid, "rfp", rfp_pdf)
         updates["rfp_filename"] = rfp_pdf.filename

@@ -11,8 +11,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from backend.database import get_db, row, rows
-from backend.deps import get_current_user
-from backend.auth_utils import decode_token
+from backend.deps import get_current_user, get_current_user_from_token
 
 router = APIRouter()
 
@@ -251,9 +250,7 @@ async def start_analysis(body: StartIn, user: dict = Depends(get_current_user)):
 
 @router.get("/stream/{job_id}")
 async def stream(job_id: str, token: str = Query(...)):
-    payload = decode_token(token)
-    if not payload:
-        raise HTTPException(401, "Invalid token")
+    get_current_user_from_token(token)
     job = _jobs.get(job_id)
     if not job:
         raise HTTPException(404, "Job not found")

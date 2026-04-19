@@ -4,7 +4,8 @@ import os
 import re
 from typing import Any, Callable, Dict, List, Optional
 
-from groq import Groq
+from backend.groq_client import create_json_completion
+from backend.llm_schemas import validate_rfp_extraction_payload
 from ingestion.pdf_utils import extract_pdf_pages
 from dotenv import load_dotenv
 
@@ -82,10 +83,9 @@ def _coerce_float_or_none(value: Any) -> float | None:
 
 class RFPParser:
     def __init__(self, api_key: str | None = None, model: str = DEFAULT_MODEL) -> None:
-        api_key = api_key or os.getenv("GROQ_API_KEY")
-        if not api_key:
+        self.api_key = api_key or os.getenv("GROQ_API_KEY")
+        if not self.api_key:
             raise ValueError("Groq API key is required. Set GROQ_API_KEY.")
-        self.client = Groq(api_key=api_key)
         self.model = model
 
     def _extract_pdf_pages(self, pdf_path: str) -> List[Dict[str, Any]]:
@@ -160,29 +160,26 @@ class RFPParser:
 
     def _extract_structured_from_chunk(self, chunk_text: str) -> Dict[str, Any]:
         try:
-            response = self.client.chat.completions.create(
+            raw = create_json_completion(
+                api_key=self.api_key,
                 model=self.model,
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": chunk_text},
                 ],
-                response_format={"type": "json_object"},
                 temperature=0,
                 max_tokens=MAX_COMPLETION_TOKENS,
             )
-            raw = response.choices[0].message.content.strip()
         except Exception as e:
-            msg = str(e)
-            if "429" in msg or "rate_limit" in msg.lower():
-                raise RuntimeError("Groq rate limit (429) — wait and retry or upgrade quota.") from e
-            raise RuntimeError(f"Groq API error: {msg}") from e
+            raise RuntimeError(str(e)) from e
         try:
             parsed = json.loads(raw)
         except json.JSONDecodeError as exc:
             raise ValueError(f"Model returned invalid JSON: {exc}\nRaw output:\n{raw}") from exc
         if not isinstance(parsed, dict):
             raise ValueError("Model output must be a JSON object.")
-        return self._normalize_schema(parsed)
+        validated = validate_rfp_extraction_payload(parsed)
+        return self._normalize_schema(validated.model_dump())
 
     def _build_text_chunks_with_overlap(self, pages: List[Dict[str, Any]]) -> List[str]:
         # Keep input comfortably below model/account limits after adding prompt + completion budget.
@@ -312,7 +309,7 @@ def main() -> None:
     arg_parser.add_argument("pdf_path", help="Path to RFP PDF file")
     arg_parser.add_argument("--api-key", dest="api_key", default=None, help="Groq API key (optional)")
     args = arg_parser.parse_args()
-    print(json.dumps(parse_rfp_pdf(args.pdf_path, groq_api_key=args.api_key), indent=2))
+    print(json.dumps(parse_rfp_pdf(args.pdf_path, api_key=args.api_key), indent=2))
 
 
 if __name__ == "__main__":
