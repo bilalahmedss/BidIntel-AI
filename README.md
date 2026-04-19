@@ -417,9 +417,8 @@ Check:
 ## Notes for Developers
 
 - Analysis results accumulate in SQLite and are kept as historical runs.
-- Job execution state is not persisted across server restarts.
-- Company knowledge data and response RFP text are required project fields.
-- Response PDF files are optional supplemental artifacts, not substitutes for the required response text field.
+- Job state is persisted in SQLite — completed and errored jobs are recoverable after server restarts.
+- Both RFP PDF and response PDF are required when creating a project.
 
 ## Recommended Next Improvements
 
