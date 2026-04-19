@@ -29,10 +29,6 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Streamlit
-streamlit_log.txt
-.streamlit/
-
 # Jupyter Notebook
 .ipynb_checkpoints
 
@@ -45,9 +41,12 @@ streamlit_log.txt
 # macOS
 .DS_Store
 
-# Node
+# Node / Frontend
 node_modules/
 frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.env.local
 
 # Data / DBs
 *.sqlite3
@@ -56,5 +55,6 @@ frontend/node_modules/
 *.db-wal
 data/uploads/
 data/chroma_kb/
+data/tenders/
 data/company_brain/
 data/company_brain_strong/

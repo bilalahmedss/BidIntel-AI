@@ -1,7 +1,0 @@
-Nexus Advisory - Proposed Project Team
-
-- Team lead: senior expert with 15 years of digital financial services experience.
-- Pakistan payments specialist: responsible for local payment system diagnostics and regulatory context.
-- International comparator analyst: responsible for benchmarking and cross-country model review.
-- Quantitative researcher: responsible for data analysis, scoring frameworks, and evidence modeling.
-- Point of contact designated: project communications and submission coordination handled by assigned focal person.
