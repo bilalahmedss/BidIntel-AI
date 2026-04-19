@@ -1,0 +1,277 @@
+import asyncio
+import json
+import time
+import uuid
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Optional
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+
+from backend.database import get_db, row, rows
+from backend.deps import get_current_user
+from backend.auth_utils import decode_token
+
+router = APIRouter()
+
+UPLOAD_DIR = Path(__file__).resolve().parents[2] / "data" / "uploads"
+
+
+@dataclass
+class Job:
+    job_id: str
+    project_id: int
+    status: str = "queued"
+    queue: asyncio.Queue = field(default_factory=asyncio.Queue)
+    analysis_id: Optional[int] = None
+    error: Optional[str] = None
+    started_at: float = field(default_factory=time.time)
+
+
+_jobs: dict[str, Job] = {}
+
+
+class StartIn(BaseModel):
+    project_id: int
+    financial_scenario: str = "expected"
+
+
+async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], scenario: str):
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+    loop = asyncio.get_running_loop()
+
+    def emit(event: dict):
+        event.setdefault("elapsed_s", round(time.time() - job.started_at, 1))
+        loop.call_soon_threadsafe(job.queue.put_nowait, event)
+
+    try:
+        job.status = "running"
+        db = get_db()
+        db.execute("UPDATE analysis_jobs SET status='running', updated_at=datetime('now') WHERE job_id=?", (job.job_id,))
+        db.commit()
+
+        from ingestion.rfp_parser import parse_rfp_pdf
+        from ingestion.response_loader import build_response_index
+        from rag.retriever import make_retriever
+        from scoring.poison_pill import detect_poison_pills
+        from scoring.criterion_scorer import score_extracted_gates
+        from scoring.wps_calculator import calculate_wps
+        import pdfplumber
+
+        # Step 1 — Parse RFP
+        def on_chunk_start(current, total):
+            emit({"event": "progress", "step": 1, "total_steps": 5,
+                  "label": f"Calling Cohere API — RFP chunk {current}/{total}…",
+                  "pct": 5 + int((current - 1) / max(total, 1) * 20)})
+
+        def on_chunk_done(current, total):
+            emit({"event": "progress", "step": 1, "total_steps": 5,
+                  "label": f"Parsed RFP chunk {current}/{total}",
+                  "pct": 5 + int(current / max(total, 1) * 20)})
+
+        emit({"event": "progress", "step": 1, "total_steps": 5, "label": "Reading RFP PDF…", "pct": 3})
+        parsed = await asyncio.to_thread(
+            parse_rfp_pdf, rfp_path,
+            on_chunk_progress=on_chunk_done,
+            on_chunk_start=on_chunk_start,
+        )
+        gates = parsed.get("gates", [])
+        pills_raw = parsed.get("poison_pill_clauses", [])
+
+        # Cache parsed RFP in project
+        db.execute("UPDATE projects SET parsed_rfp_json=?, updated_at=datetime('now') WHERE id=?",
+                   (json.dumps(parsed), job.project_id))
+        db.commit()
+
+        # Step 2 — Poison pills
+        emit({"event": "progress", "step": 2, "total_steps": 5, "label": "Detecting poison pill clauses…", "pct": 28})
+
+        def _extract_pages(path):
+            pages = []
+            with pdfplumber.open(path) as pdf:
+                for i, page in enumerate(pdf.pages, 1):
+                    pages.append({"page_number": i, "text": page.extract_text() or ""})
+            return pages
+
+        raw_pages = await asyncio.to_thread(_extract_pages, rfp_path)
+        poison_pills = await asyncio.to_thread(detect_poison_pills, pills_raw, raw_pages)
+
+        # Step 3 — Index response
+        criterion_results = []
+        if response_path and Path(response_path).exists():
+            emit({"event": "progress", "step": 3, "total_steps": 5, "label": "Indexing bid response…", "pct": 40})
+            response_index = await asyncio.to_thread(build_response_index, response_path)
+            retriever = make_retriever(response_index)
+
+            # Step 4 — Score criteria
+            total_criteria = sum(len(g.get("criteria", [])) for g in gates)
+
+            def on_criterion(current, total, name):
+                pct = 50 + int(current / max(total, 1) * 38)
+                emit({"event": "progress", "step": 4, "total_steps": 5,
+                      "label": f"Scoring criteria ({current}/{total}): {name[:50]}",
+                      "pct": pct})
+
+            emit({"event": "progress", "step": 4, "total_steps": 5,
+                  "label": f"Scoring {total_criteria} criteria…", "pct": 50})
+            scoring = await asyncio.to_thread(
+                score_extracted_gates, gates, retriever, 3, None, "command-r-plus", on_criterion
+            )
+            criterion_results = scoring.get("criterion_results", [])
+        else:
+            emit({"event": "progress", "step": 3, "total_steps": 5,
+                  "label": "No response PDF — skipping scoring", "pct": 50})
+
+        # Step 5 — WPS
+        emit({"event": "progress", "step": 5, "total_steps": 5, "label": "Calculating Win Probability Score…", "pct": 92})
+        wps_results = {}
+        for s in ["conservative", "expected", "optimistic"]:
+            wps_results[s] = calculate_wps(gates, criterion_results, financial_scenario=s)
+
+        selected = wps_results[scenario]
+
+        # Store results
+        cur = db.execute(
+            """INSERT INTO analysis_results
+               (job_id, project_id, financial_scenario, rfp_meta_json, gates_json,
+                criterion_results_json, gate_results_json, wps_summary_json, scenarios_json, poison_pills_json)
+               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (
+                job.job_id, job.project_id, scenario,
+                json.dumps({"rfp_id": parsed.get("rfp_id", ""), "issuer": parsed.get("issuer", ""),
+                            "submission_rules": parsed.get("submission_rules", []),
+                            "wps_formula": parsed.get("wps_formula", "")}),
+                json.dumps(gates),
+                json.dumps(criterion_results),
+                json.dumps(selected.get("gate_results", [])),
+                json.dumps(selected.get("scenarios", {}).get(scenario, {})),
+                json.dumps(wps_results),
+                json.dumps(poison_pills),
+            ),
+        )
+        analysis_id = cur.lastrowid
+        db.execute("UPDATE analysis_jobs SET status='complete', updated_at=datetime('now') WHERE job_id=?", (job.job_id,))
+        db.commit()
+        db.close()
+
+        job.status = "complete"
+        job.analysis_id = analysis_id
+        emit({"event": "complete", "job_id": job.job_id, "analysis_id": analysis_id, "pct": 100})
+
+    except Exception as e:
+        job.status = "error"
+        job.error = str(e)
+        try:
+            db = get_db()
+            db.execute("UPDATE analysis_jobs SET status='error', error_message=?, updated_at=datetime('now') WHERE job_id=?",
+                       (str(e)[:500], job.job_id))
+            db.commit()
+            db.close()
+        except Exception:
+            pass
+        # Format API errors to be human-readable
+        msg = str(e)
+        if hasattr(e, 'status_code'):
+            code = getattr(e, 'status_code', '')
+            body = getattr(e, 'body', None) or getattr(e, 'message', msg)
+            msg = f"API error {code}: {body}"
+        emit({"event": "error", "message": msg})
+    finally:
+        # Must use call_soon_threadsafe so None is scheduled AFTER the error event above
+        loop.call_soon_threadsafe(job.queue.put_nowait, None)
+
+
+@router.post("/start")
+async def start_analysis(body: StartIn, bg: BackgroundTasks, user: dict = Depends(get_current_user)):
+    db = get_db()
+    p = row(db.execute("SELECT * FROM projects WHERE id=?", (body.project_id,)).fetchone())
+    db.close()
+    if not p:
+        raise HTTPException(404, "Project not found")
+    if not p.get("rfp_filename"):
+        raise HTTPException(400, "Project has no RFP PDF")
+
+    rfp_path = str(UPLOAD_DIR / "rfp" / f"{body.project_id}_rfp.pdf")
+    response_path = str(UPLOAD_DIR / "response" / f"{body.project_id}_response.pdf")
+
+    job_id = str(uuid.uuid4())
+    job = Job(job_id=job_id, project_id=body.project_id)
+    _jobs[job_id] = job
+
+    db = get_db()
+    db.execute("INSERT INTO analysis_jobs (job_id, project_id, financial_scenario) VALUES (?,?,?)",
+               (job_id, body.project_id, body.financial_scenario))
+    db.commit()
+    db.close()
+
+    bg.add_task(_run_pipeline, job, rfp_path,
+                response_path if Path(response_path).exists() else None,
+                body.financial_scenario)
+    return {"job_id": job_id, "status": "queued"}
+
+
+@router.get("/stream/{job_id}")
+async def stream(job_id: str, token: str = Query(...)):
+    payload = decode_token(token)
+    if not payload:
+        raise HTTPException(401, "Invalid token")
+    job = _jobs.get(job_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+
+    async def generate():
+        while True:
+            event = await job.queue.get()
+            if event is None:
+                break
+            yield f"data: {json.dumps(event)}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@router.get("/active/{project_id}")
+def get_active_job(project_id: int, user: dict = Depends(get_current_user)):
+    for job_id, job in _jobs.items():
+        if job.project_id == project_id and job.status in ("queued", "running"):
+            return {"job_id": job_id, "status": job.status}
+    db = get_db()
+    r = row(db.execute(
+        "SELECT aj.job_id, aj.status, ar.id as result_id FROM analysis_jobs aj "
+        "LEFT JOIN analysis_results ar ON ar.job_id=aj.job_id "
+        "WHERE aj.project_id=? ORDER BY aj.created_at DESC LIMIT 1",
+        (project_id,),
+    ).fetchone())
+    db.close()
+    return r or {"job_id": None, "status": None}
+
+
+@router.get("/project/{pid}")
+def list_analyses(pid: int, user: dict = Depends(get_current_user)):
+    db = get_db()
+    js = rows(db.execute(
+        "SELECT aj.*, ar.id as result_id FROM analysis_jobs aj LEFT JOIN analysis_results ar ON ar.job_id=aj.job_id WHERE aj.project_id=? ORDER BY aj.created_at DESC",
+        (pid,),
+    ).fetchall())
+    db.close()
+    return js
+
+
+@router.get("/result/{aid}")
+def get_result(aid: int, user: dict = Depends(get_current_user)):
+    db = get_db()
+    r = row(db.execute("SELECT * FROM analysis_results WHERE id=?", (aid,)).fetchone())
+    db.close()
+    if not r:
+        raise HTTPException(404, "Result not found")
+    for col in ("rfp_meta_json", "gates_json", "criterion_results_json",
+                "gate_results_json", "wps_summary_json", "scenarios_json", "poison_pills_json"):
+        try:
+            r[col.replace("_json", "")] = json.loads(r.pop(col) or "null")
+        except Exception:
+            r[col.replace("_json", "")] = None
+    return r

@@ -2,15 +2,15 @@ import argparse
 import json
 import os
 import re
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
+import cohere
 import pdfplumber
 from dotenv import load_dotenv
-from groq import Groq
 
 load_dotenv()
 
-DEFAULT_MODEL = "llama-3.3-70b-versatile"
+DEFAULT_MODEL = "command-r-plus"
 MAX_CHUNK_TOKENS = 8000
 CHARS_PER_TOKEN_ESTIMATE = 4
 CHUNK_OVERLAP_PAGES = 1
@@ -81,11 +81,11 @@ def _coerce_float_or_none(value: Any) -> float | None:
 
 
 class RFPParser:
-    def __init__(self, groq_api_key: str | None = None, model: str = DEFAULT_MODEL) -> None:
-        api_key = groq_api_key or os.getenv("GROQ_API_KEY")
+    def __init__(self, api_key: str | None = None, model: str = DEFAULT_MODEL) -> None:
+        api_key = api_key or os.getenv("COHERE_API_KEY")
         if not api_key:
-            raise ValueError("Groq API key is required. Set GROQ_API_KEY or pass groq_api_key.")
-        self.client = Groq(api_key=api_key)
+            raise ValueError("Cohere API key is required. Set COHERE_API_KEY.")
+        self.client = cohere.ClientV2(api_key=api_key)
         self.model = model
 
     def _extract_pdf_pages(self, pdf_path: str) -> List[Dict[str, Any]]:
@@ -97,7 +97,12 @@ class RFPParser:
                 pages.append({"page_number": i, "text": page.extract_text() or ""})
         return pages
 
-    def parse_pdf(self, pdf_path: str) -> Dict[str, Any]:
+    def parse_pdf(
+        self,
+        pdf_path: str,
+        on_chunk_progress: Optional[Callable[[int, int], None]] = None,
+        on_chunk_start: Optional[Callable[[int, int], None]] = None,
+    ) -> Dict[str, Any]:
         pages = self._extract_pdf_pages(pdf_path)
         chunks = self._build_text_chunks_with_overlap(pages)
         if not chunks:
@@ -115,8 +120,12 @@ class RFPParser:
         seen_clause_texts = set()
         seen_rules = set()
 
-        for chunk_text in chunks:
+        for chunk_idx, chunk_text in enumerate(chunks, start=1):
+            if on_chunk_start:
+                on_chunk_start(chunk_idx, len(chunks))
             normalized_partial = self._extract_structured_from_chunk(chunk_text)
+            if on_chunk_progress:
+                on_chunk_progress(chunk_idx, len(chunks))
 
             if not merged["rfp_id"] and normalized_partial.get("rfp_id"):
                 merged["rfp_id"] = normalized_partial["rfp_id"]
@@ -153,18 +162,21 @@ class RFPParser:
         return normalized
 
     def _extract_structured_from_chunk(self, chunk_text: str) -> Dict[str, Any]:
-        response = self.client.chat.completions.create(
-            model=self.model,
-            temperature=0,
-            max_tokens=MAX_COMPLETION_TOKENS,
-            response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": chunk_text},
-            ],
-        )
-
-        raw = (response.choices[0].message.content or "").strip()
+        try:
+            response = self.client.chat(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": chunk_text},
+                ],
+                response_format={"type": "json_object"},
+            )
+            raw = response.message.content[0].text.strip()
+        except Exception as e:
+            msg = str(e)
+            if "429" in msg or "rate limit" in msg.lower():
+                raise RuntimeError("Cohere rate limit (429) — wait 60 s and retry, or upgrade quota.") from e
+            raise RuntimeError(f"Cohere API error: {msg}") from e
         try:
             parsed = json.loads(raw)
         except json.JSONDecodeError as exc:
@@ -285,14 +297,21 @@ class RFPParser:
         return result
 
 
-def parse_rfp_pdf(pdf_path: str, groq_api_key: str | None = None) -> Dict[str, Any]:
-    return RFPParser(groq_api_key=groq_api_key).parse_pdf(pdf_path)
+def parse_rfp_pdf(
+    pdf_path: str,
+    api_key: str | None = None,
+    on_chunk_progress: Optional[Callable[[int, int], None]] = None,
+    on_chunk_start: Optional[Callable[[int, int], None]] = None,
+) -> Dict[str, Any]:
+    return RFPParser(api_key=api_key).parse_pdf(
+        pdf_path, on_chunk_progress=on_chunk_progress, on_chunk_start=on_chunk_start
+    )
 
 
 def main() -> None:
     arg_parser = argparse.ArgumentParser(description="Parse RFP PDF into structured JSON.")
     arg_parser.add_argument("pdf_path", help="Path to RFP PDF file")
-    arg_parser.add_argument("--api-key", dest="api_key", default=None, help="Groq API key (optional)")
+    arg_parser.add_argument("--api-key", dest="api_key", default=None, help="Cohere API key (optional)")
     args = arg_parser.parse_args()
     print(json.dumps(parse_rfp_pdf(args.pdf_path, groq_api_key=args.api_key), indent=2))
 

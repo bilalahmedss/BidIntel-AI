@@ -2,12 +2,12 @@ import json
 import os
 from typing import Any, Dict, List
 
+import cohere
 from dotenv import load_dotenv
-from groq import Groq
 
 load_dotenv()
 
-DEFAULT_MODEL = "llama-3.3-70b-versatile"
+DEFAULT_MODEL = "command-r-plus"
 
 
 def _normalize_clause_text(text: str) -> str:
@@ -33,28 +33,24 @@ def _find_clause_page(clause_text: str, raw_pages: List[Dict[str, Any]]) -> tupl
     return 0, False
 
 
-def _sweep_page_for_risks(client: Groq, page_text: str, model: str = DEFAULT_MODEL) -> Dict[str, Any]:
+def _sweep_page_for_risks(page_text: str, model: str = DEFAULT_MODEL) -> Dict[str, Any]:
     system_prompt = (
-        "Does this page contain any clause that could automatically disqualify a bidder, \n"
-        "impose unlimited liability, restrict nationality, ban subcontracting, or impose \n"
-        "unfair sole discretion on the client? Return ONLY JSON: \n"
-        "{found: bool, clause_text: string, reason: string, severity: CRITICAL|HIGH|MEDIUM}\n"
-        "If nothing found return {found: false}.\n"
-        "Return ONLY valid JSON, no markdown, no explanation."
+        "Does this page contain any clause that could automatically disqualify a bidder, "
+        "impose unlimited liability, restrict nationality, ban subcontracting, or impose "
+        "unfair sole discretion on the client? Return ONLY a JSON object: "
+        "{\"found\": bool, \"clause_text\": string, \"reason\": string, \"severity\": \"CRITICAL\"|\"HIGH\"|\"MEDIUM\"}. "
+        "If nothing found return {\"found\": false}."
     )
-    user_payload = {"page_text": page_text[:12000]}
-    response = client.chat.completions.create(
+    co = cohere.ClientV2(api_key=os.getenv("COHERE_API_KEY"))
+    response = co.chat(
         model=model,
-        temperature=0,
-        max_tokens=800,
-        response_format={"type": "json_object"},
         messages=[
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": json.dumps(user_payload)},
+            {"role": "user", "content": json.dumps({"page_text": page_text[:12000]})},
         ],
+        response_format={"type": "json_object"},
     )
-
-    raw = (response.choices[0].message.content or "").strip()
+    raw = response.message.content[0].text.strip()
     parsed = json.loads(raw)
     if not isinstance(parsed, dict):
         return {"found": False}
@@ -72,10 +68,9 @@ def detect_poison_pills(
     groq_api_key: str | None = None,
     model: str = DEFAULT_MODEL,
 ) -> List[Dict[str, Any]]:
-    api_key = groq_api_key or os.getenv("GROQ_API_KEY")
+    api_key = groq_api_key or os.getenv("COHERE_API_KEY")
     if not api_key:
-        raise ValueError("Groq API key is required. Set GROQ_API_KEY or pass groq_api_key.")
-    client = Groq(api_key=api_key)
+        raise ValueError("Cohere API key is required. Set COHERE_API_KEY.")
 
     combined: List[Dict[str, Any]] = []
     seen_clauses = set()
@@ -110,7 +105,7 @@ def detect_poison_pills(
         if not page_text.strip():
             continue
 
-        sweep = _sweep_page_for_risks(client=client, page_text=page_text, model=model)
+        sweep = _sweep_page_for_risks(page_text=page_text, model=model)
         if not sweep.get("found", False):
             continue
 

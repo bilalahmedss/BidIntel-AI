@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, List
+from typing import Any, Callable, List
 
 import chromadb
 from dotenv import load_dotenv
@@ -13,7 +13,7 @@ load_dotenv()
 
 DEFAULT_COLLECTION_NAME = "company_brain"
 DEFAULT_PERSIST_DIR = str((Path(__file__).resolve().parents[1] / "data" / "chroma_kb").resolve())
-_MODEL = SentenceTransformer("all-MiniLM-L6-v2")
+_MODEL = None  # loaded lazily on first use
 
 
 class LocalSentenceTransformerEmbedding(BaseEmbedding):
@@ -31,6 +31,9 @@ class LocalSentenceTransformerEmbedding(BaseEmbedding):
 
     def _embed_text(self, text: str) -> List[float]:
         if self._st_model is None:
+            global _MODEL
+            if _MODEL is None:
+                _MODEL = SentenceTransformer(self.model_name)
             self._st_model = _MODEL
         vector = self._st_model.encode(text, normalize_embeddings=True)
         return [float(v) for v in vector.tolist()]
@@ -59,3 +62,18 @@ def retrieve(query: str, top_k: int = 3) -> List[str]:
     retriever = index.as_retriever(similarity_top_k=top_k)
     nodes = retriever.retrieve(query)
     return [node.get_content().strip() for node in nodes if node.get_content().strip()]
+
+
+def make_retriever(index: VectorStoreIndex) -> Callable[[str, int], List[str]]:
+    """Return a retriever function bound to the given VectorStoreIndex."""
+    embedding_model = _build_embedding_model()
+    Settings.embed_model = embedding_model
+
+    def _retrieve(query: str, top_k: int = 3) -> List[str]:
+        if not query or not query.strip():
+            return []
+        r = index.as_retriever(similarity_top_k=top_k)
+        nodes = r.retrieve(query)
+        return [node.get_content().strip() for node in nodes if node.get_content().strip()]
+
+    return _retrieve

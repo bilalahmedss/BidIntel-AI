@@ -2,13 +2,12 @@ import json
 import os
 from typing import Any, Callable, Dict, List
 
+import cohere
 from dotenv import load_dotenv
-from groq import Groq
 
 load_dotenv()
 
-DEFAULT_MODEL = "llama-3.3-70b-versatile"
-# DEFAULT_MODEL = "llama-3.3-70b-versatile"
+DEFAULT_MODEL = "command-r-plus"
 
 def _normalize_signal(signal: str) -> str:
     return " ".join(signal.strip().lower().split())
@@ -19,17 +18,15 @@ def _extract_matched_signals_with_llm(
     criterion_description: str,
     checklist_signals: List[str],
     retrieved_chunks: List[str],
-    client: Groq,
     model: str = DEFAULT_MODEL,
 ) -> List[str]:
     if not checklist_signals or not retrieved_chunks:
         return []
 
     system_prompt = (
-        "Given these document excerpts and this list of signals, return ONLY a JSON array \n"
-        "of strings: the signals that are clearly present in the excerpts. \n"
-        "Do not invent matches. If nothing matches, return an empty array.\n"
-        "Return ONLY valid JSON, no markdown, no explanation."
+        "Given these document excerpts and this list of signals, return ONLY a JSON object "
+        "with key 'matched_signals' containing an array of strings: the signals clearly present "
+        "in the excerpts. Do not invent matches. If nothing matches, return {\"matched_signals\": []}."
     )
     user_payload = {
         "criterion_name": criterion_name,
@@ -38,18 +35,16 @@ def _extract_matched_signals_with_llm(
         "retrieved_chunks": retrieved_chunks,
     }
 
-    response = client.chat.completions.create(
+    co = cohere.ClientV2(api_key=os.getenv("COHERE_API_KEY"))
+    response = co.chat(
         model=model,
-        max_tokens=1500,
-        temperature=0,
-        response_format={"type": "json_object"},
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": json.dumps(user_payload)},
         ],
+        response_format={"type": "json_object"},
     )
-
-    raw = (response.choices[0].message.content or "").strip()
+    raw = response.message.content[0].text.strip()
     parsed = json.loads(raw)
     if isinstance(parsed, dict) and "matched_signals" in parsed and isinstance(parsed["matched_signals"], list):
         parsed = parsed["matched_signals"]
@@ -86,17 +81,22 @@ def score_extracted_gates(
     top_k: int = 3,
     groq_api_key: str | None = None,
     model: str = DEFAULT_MODEL,
+    on_progress: Callable[[int, int, str], None] | None = None,
 ) -> Dict[str, Any]:
-    api_key = groq_api_key or os.getenv("GROQ_API_KEY")
+    api_key = groq_api_key or os.getenv("COHERE_API_KEY")
     if not api_key:
-        raise ValueError("Groq API key is required. Set GROQ_API_KEY or pass groq_api_key.")
-    client = Groq(api_key=api_key)
+        raise ValueError("Cohere API key is required. Set COHERE_API_KEY.")
 
     criterion_results: List[Dict[str, Any]] = []
     gate_results: List[Dict[str, Any]] = []
     binary_gate_failed = False
     eliminated_at_gate = ""
     total_numeric_score = 0.0
+
+    total_criteria = sum(
+        len(g.get("criteria", []) or []) for g in extracted_gates if isinstance(g, dict)
+    )
+    scored_so_far = 0
 
     for gate in extracted_gates:
         if not isinstance(gate, dict):
@@ -120,6 +120,7 @@ def score_extracted_gates(
             if not isinstance(criterion, dict):
                 continue
 
+            scored_so_far += 1
             criterion_id = str(criterion.get("id", "") or "")
             name = str(criterion.get("name", "") or "")
             description = str(criterion.get("description", "") or "")
@@ -137,9 +138,11 @@ def score_extracted_gates(
                 criterion_description=description,
                 checklist_signals=checklist_signals,
                 retrieved_chunks=retrieved_chunks,
-                client=client,
                 model=model,
             )
+
+            if on_progress:
+                on_progress(scored_so_far, total_criteria, name)
 
             matched_norm = {_normalize_signal(s) for s in matched_signals}
             gap_signals = [s for s in checklist_signals if _normalize_signal(s) not in matched_norm]
