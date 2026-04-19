@@ -107,7 +107,9 @@ CREATE TABLE IF NOT EXISTS lookup_docs (
 
 
 def init_db() -> None:
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    DATA_DIR = DB_PATH.parent
+    for d in ["uploads/rfp", "uploads/response", "company_brain", "chroma_kb", "outputs"]:
+        (DATA_DIR / d).mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(str(DB_PATH)) as conn:
         conn.executescript(SCHEMA)
         user_columns = {r[1] for r in conn.execute("PRAGMA table_info(users)").fetchall()}
