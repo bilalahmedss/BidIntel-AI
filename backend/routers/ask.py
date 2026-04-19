@@ -73,6 +73,45 @@ def _build_context(project_id: int, question: str) -> str:
         except Exception:
             pass
 
+    # Latest analysis results for this project
+    db2 = get_db()
+    ar = row(db2.execute(
+        "SELECT wps_summary_json, criterion_results_json, poison_pills_json "
+        "FROM analysis_results WHERE project_id=? ORDER BY created_at DESC LIMIT 1",
+        (project_id,),
+    ).fetchone())
+    db2.close()
+    if ar:
+        try:
+            lines = []
+            wps = json.loads(ar["wps_summary_json"] or "{}")
+            if wps:
+                lines.append(f"WPS: {wps.get('wps', 'N/A')} | Verdict: {wps.get('verdict', 'N/A')}")
+            criteria = json.loads(ar["criterion_results_json"] or "[]")
+            for c in criteria[:20]:
+                lines.append(f"- {c.get('name','')}: {c.get('status','') or c.get('score','')} | gaps: {', '.join(c.get('gap_signals',[]))}")
+            pills = json.loads(ar["poison_pills_json"] or "[]")
+            for pp in pills[:10]:
+                lines.append(f"[RISK {pp.get('severity','')}] {pp.get('clause_text','')[:200]}")
+            if lines:
+                chunks.append("## Analysis Results\n" + "\n".join(lines))
+        except Exception:
+            pass
+
+    # Project sections (draft bid response workspace)
+    db3 = get_db()
+    secs = db3.execute(
+        "SELECT title, content FROM sections WHERE project_id=? ORDER BY order_index",
+        (project_id,),
+    ).fetchall()
+    db3.close()
+    if secs:
+        sec_text = "\n\n".join(
+            f"### {s['title']}\n{s['content']}" for s in secs if s["content"].strip()
+        )
+        if sec_text.strip():
+            chunks.append(f"## Draft Response Sections\n{sec_text[:3000]}")
+
     return "\n\n====\n\n".join(chunks) if chunks else "No relevant documents found."
 
 
