@@ -6,7 +6,9 @@ export const clearHistory    = (pid: number) => api.delete(`/ask/${pid}/history`
 
 export function streamAsk(
   pid: number, question: string,
-  onChunk: (c: string) => void, onDone: () => void
+  onChunk: (c: string) => void,
+  onDone: () => void,
+  onReplace?: (c: string) => void,
 ) {
   const token = localStorage.getItem('bi_token') || ''
   fetch(`/api/ask/${pid}/send?token=${token}`, {
@@ -28,6 +30,7 @@ export function streamAsk(
         try {
           const d = JSON.parse(line.slice(6))
           if (d.chunk) onChunk(d.chunk)
+          if (d.replace && onReplace) onReplace(d.replace)
           if (d.done) onDone()
         } catch { /* ignore */ }
       }

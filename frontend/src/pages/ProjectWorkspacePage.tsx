@@ -7,6 +7,8 @@ import SectionEditor from '../components/editor/SectionEditor'
 import { Plus, Trash2, Wand2, Play, ArrowLeft, UserPlus, Clock } from 'lucide-react'
 import { addMember } from '../api/projects'
 import { useAnalysis } from '../context/AnalysisContext'
+import NoticePanel from '../components/governance/NoticePanel'
+import { CONFIDENTIALITY_NOTICE } from '../governance'
 
 const SOURCE_BADGE: Record<string, string> = {
   auto: 'bg-indigo-900/50 text-indigo-400',
@@ -72,6 +74,12 @@ export default function ProjectWorkspacePage() {
           <h1 className="font-bold text-slate-100 text-sm leading-tight truncate">{project.title}</h1>
           {project.issuer && <p className="text-xs text-slate-500 mt-0.5">{project.issuer}</p>}
           {project.deadline && <p className="text-xs text-slate-500">Due {project.deadline}</p>}
+        </div>
+
+        <div className="px-3 pt-3">
+          <NoticePanel variant="confidential" title="Confidential by Default" compact>
+            {CONFIDENTIALITY_NOTICE}
+          </NoticePanel>
         </div>
 
         {/* Analysis progress */}

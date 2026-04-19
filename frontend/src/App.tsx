@@ -9,6 +9,7 @@ import ProjectWorkspacePage from './pages/ProjectWorkspacePage'
 import AnalysisPage from './pages/AnalysisPage'
 import AskPage from './pages/AskPage'
 import KnowledgeBasePage from './pages/KnowledgeBasePage'
+import SafetyPage from './pages/SafetyPage'
 
 function Guards() {
   const { user } = useAuth()
@@ -22,6 +23,7 @@ function Guards() {
         <Route path="/analysis"                element={<AnalysisPage />} />
         <Route path="/ask"                     element={<AskPage />} />
         <Route path="/knowledge-base"          element={<KnowledgeBasePage />} />
+        <Route path="/safety"                  element={<SafetyPage />} />
         <Route path="*"                        element={<Navigate to="/" />} />
       </Routes>
     </AppShell>

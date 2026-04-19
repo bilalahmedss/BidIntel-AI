@@ -5,6 +5,8 @@ import { getChatHistory, streamAsk, clearHistory } from '../api/ask'
 import ReactMarkdown from 'react-markdown'
 import { Send, Trash2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import NoticePanel from '../components/governance/NoticePanel'
+import { CONFIDENTIALITY_NOTICE, HUMAN_REVIEW_NOTICE } from '../governance'
 
 interface Message { id?: number; role: 'user' | 'assistant'; content: string; streaming?: boolean }
 
@@ -32,23 +34,37 @@ export default function AskPage() {
     const idx = -1
     let buf = ''
     setMessages(prev => [...prev, { role: 'assistant', content: '', streaming: true }])
-    streamAsk(pid, q, chunk => {
-      buf += chunk
-      setMessages(prev => {
-        const msgs = [...prev]
-        const last = msgs[msgs.length - 1]
-        if (last.streaming) msgs[msgs.length - 1] = { ...last, content: buf }
-        return msgs
-      })
-    }, () => {
-      setLoading(false)
-      setMessages(prev => {
-        const msgs = [...prev]
-        const last = msgs[msgs.length - 1]
-        if (last.streaming) msgs[msgs.length - 1] = { ...last, streaming: false }
-        return msgs
-      })
-    })
+    streamAsk(
+      pid,
+      q,
+      chunk => {
+        buf += chunk
+        setMessages(prev => {
+          const msgs = [...prev]
+          const last = msgs[msgs.length - 1]
+          if (last.streaming) msgs[msgs.length - 1] = { ...last, content: buf }
+          return msgs
+        })
+      },
+      () => {
+        setLoading(false)
+        setMessages(prev => {
+          const msgs = [...prev]
+          const last = msgs[msgs.length - 1]
+          if (last.streaming) msgs[msgs.length - 1] = { ...last, streaming: false }
+          return msgs
+        })
+      },
+      replacement => {
+        buf = replacement
+        setMessages(prev => {
+          const msgs = [...prev]
+          const last = msgs[msgs.length - 1]
+          if (last.streaming) msgs[msgs.length - 1] = { ...last, content: buf }
+          return msgs
+        })
+      },
+    )
   }
 
   async function handleClear() {
@@ -71,6 +87,15 @@ export default function AskPage() {
             <button onClick={handleClear} className="text-slate-500 hover:text-red-400 transition-colors"><Trash2 size={15} /></button>
           )}
         </div>
+      </div>
+
+      <div className="space-y-3 mb-4">
+        <NoticePanel variant="confidential" title="Confidentiality Warning" compact>
+          {CONFIDENTIALITY_NOTICE} Avoid unnecessary personal or business-sensitive detail in free-form prompts.
+        </NoticePanel>
+        <NoticePanel variant="review" title="Human Review Required" compact>
+          {HUMAN_REVIEW_NOTICE}
+        </NoticePanel>
       </div>
 
       {!pid && (

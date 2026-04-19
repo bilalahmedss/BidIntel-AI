@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FileText, Trash2, Upload } from 'lucide-react'
 import { deleteLookupDoc, getLookupDocs, uploadLookupDoc } from '../api/lookup'
+import NoticePanel from '../components/governance/NoticePanel'
+import { CONFIDENTIALITY_NOTICE } from '../governance'
 
 export default function KnowledgeBasePage() {
   const qc = useQueryClient()
@@ -17,20 +19,27 @@ export default function KnowledgeBasePage() {
     try {
       for (const f of files) await uploadLookupDoc(f)
       qc.invalidateQueries({ queryKey: ['lookup', 'docs'] })
-    } catch { alert('Upload failed.') }
-    finally { e.target.value = '' }
+    } catch {
+      alert('Upload failed.')
+    } finally {
+      e.target.value = ''
+    }
   }
 
   return (
     <div className="max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">Company Knowledge Base</h1>
-      <p className="text-slate-400 text-sm mb-8">
-        Upload your company's documents once — past proposals, certifications, CVs, financial statements, capability statements.
-        They are automatically searched during every bid analysis and every Ask conversation, so BidIntel can
-        match your real capabilities against RFP requirements.
+      <p className="text-slate-400 text-sm mb-6">
+        Upload your company's documents once - past proposals, certifications, CVs, financial statements, and capability statements.
+        They are automatically searched during every bid analysis and Ask/Lookup experience.
       </p>
 
-      {/* Upload */}
+      <div className="mb-6">
+        <NoticePanel variant="confidential" title="Confidentiality Warning" compact>
+          {CONFIDENTIALITY_NOTICE}
+        </NoticePanel>
+      </div>
+
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-6">
         <h2 className="font-semibold text-sm mb-4 flex items-center gap-2">
           <Upload size={14} /> Add Documents
@@ -43,15 +52,12 @@ export default function KnowledgeBasePage() {
         </label>
       </div>
 
-      {/* Doc list */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
           <h2 className="font-semibold text-sm flex items-center gap-2">
             <FileText size={14} /> Documents ({docs.length})
           </h2>
-          {docs.length > 0 && (
-            <span className="text-xs text-emerald-400">Active — used in all analyses & chat</span>
-          )}
+          {docs.length > 0 && <span className="text-xs text-amber-400">Confidential by default</span>}
         </div>
         {docs.length === 0 ? (
           <div className="px-5 py-12 text-center">
@@ -73,7 +79,9 @@ export default function KnowledgeBasePage() {
                   </div>
                 </div>
                 <button
-                  onClick={() => { if (confirm(`Remove "${d.filename}" from the knowledge base?`)) deleteMut.mutate(d.filename) }}
+                  onClick={() => {
+                    if (confirm(`Remove "${d.filename}" from the knowledge base?`)) deleteMut.mutate(d.filename)
+                  }}
                   className="text-slate-600 hover:text-red-400 transition-colors p-1.5 rounded"
                 >
                   <Trash2 size={14} />
