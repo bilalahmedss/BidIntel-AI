@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-import pdfplumber
+import fitz  # pymupdf
 
 from bidintel.ingestion.rfp_parser import parse_rfp_pdf
 from bidintel.scoring.poison_pill import detect_poison_pills
@@ -9,9 +9,9 @@ from bidintel.scoring.poison_pill import detect_poison_pills
 
 def _extract_raw_pages(pdf_path: str):
     pages = []
-    with pdfplumber.open(pdf_path) as pdf:
-        for i, page in enumerate(pdf.pages, start=1):
-            pages.append({"page_number": i, "text": page.extract_text() or ""})
+    with fitz.open(pdf_path) as doc:
+        for i, page in enumerate(doc, start=1):
+            pages.append({"page_number": i, "text": page.get_text() or ""})
     return pages
 
 

@@ -2,12 +2,12 @@ import json
 import os
 from typing import Any, Callable, Dict, List
 
-import cohere
+import google.generativeai as genai
 from dotenv import load_dotenv
 
 load_dotenv()
 
-DEFAULT_MODEL = "command-r-plus"
+DEFAULT_MODEL = "gemini-2.0-flash"
 
 def _normalize_signal(signal: str) -> str:
     return " ".join(signal.strip().lower().split())
@@ -35,16 +35,17 @@ def _extract_matched_signals_with_llm(
         "retrieved_chunks": retrieved_chunks,
     }
 
-    co = cohere.ClientV2(api_key=os.getenv("COHERE_API_KEY"))
-    response = co.chat(
-        model=model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": json.dumps(user_payload)},
-        ],
-        response_format={"type": "json_object"},
+    m = genai.GenerativeModel(
+        model,
+        system_instruction=system_prompt,
+        generation_config=genai.GenerationConfig(
+            temperature=0,
+            max_output_tokens=1500,
+            response_mime_type="application/json",
+        ),
     )
-    raw = response.message.content[0].text.strip()
+    response = m.generate_content(json.dumps(user_payload))
+    raw = response.text.strip()
     parsed = json.loads(raw)
     if isinstance(parsed, dict) and "matched_signals" in parsed and isinstance(parsed["matched_signals"], list):
         parsed = parsed["matched_signals"]
@@ -83,9 +84,10 @@ def score_extracted_gates(
     model: str = DEFAULT_MODEL,
     on_progress: Callable[[int, int, str], None] | None = None,
 ) -> Dict[str, Any]:
-    api_key = groq_api_key or os.getenv("COHERE_API_KEY")
+    api_key = groq_api_key or os.getenv("GOOGLE_API_KEY")
     if not api_key:
-        raise ValueError("Cohere API key is required. Set COHERE_API_KEY.")
+        raise ValueError("Google API key is required. Set GOOGLE_API_KEY.")
+    genai.configure(api_key=api_key)
 
     criterion_results: List[Dict[str, Any]] = []
     gate_results: List[Dict[str, Any]] = []

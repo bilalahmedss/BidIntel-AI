@@ -108,7 +108,7 @@ async def send_message(pid: int, body: AskIn, token: str = Query(...)):
 
     import asyncio
     import sys
-    import cohere
+    import google.generativeai as genai
     sys.path.insert(0, str(ROOT))
 
     # Persist user message
@@ -126,29 +126,36 @@ async def send_message(pid: int, body: AskIn, token: str = Query(...)):
     history = list(reversed(history[1:]))  # exclude the one we just added
 
     context = await asyncio.to_thread(_build_context, pid, body.question)
-    system_prompt = (
+    system = (
         "You are BidIntel AI, an expert assistant for bid managers and proposal writers. "
         "Answer concisely and professionally using the provided context. "
         "If the context doesn't contain the answer, say so clearly.\n\n"
         f"CONTEXT:\n{context}"
     )
 
-    messages = [{"role": "system", "content": system_prompt}]
-    for m in history:
-        messages.append({"role": m["role"], "content": m["content"]})
-    messages.append({"role": "user", "content": body.question})
+    genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+    llm = genai.GenerativeModel(
+        "gemini-2.0-flash",
+        system_instruction=system,
+        generation_config=genai.GenerationConfig(temperature=0.3, max_output_tokens=1000),
+    )
+
+    # Convert history to Gemini format ("model" instead of "assistant")
+    gemini_history = [
+        {"role": "user" if m["role"] == "user" else "model", "parts": [m["content"]]}
+        for m in history
+    ]
 
     async def generate():
         full = ""
         try:
-            co = cohere.AsyncClientV2(api_key=os.getenv("COHERE_API_KEY"))
-            async with co.chat_stream(model="command-r-plus", messages=messages) as stream:
-                async for event in stream:
-                    if event.type == "content-delta":
-                        delta = event.delta.message.content.text or ""
-                        if delta:
-                            full += delta
-                            yield f"data: {json.dumps({'chunk': delta})}\n\n"
+            chat = llm.start_chat(history=gemini_history)
+            response = await chat.send_message_async(body.question, stream=True)
+            async for chunk in response:
+                delta = chunk.text or ""
+                if delta:
+                    full += delta
+                    yield f"data: {json.dumps({'chunk': delta})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'chunk': f'Error: {e}'})}\n\n"
             full = f"Error: {e}"

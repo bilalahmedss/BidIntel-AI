@@ -14,7 +14,7 @@ if project_root not in sys.path:
 import time
 
 import streamlit as st
-import pdfplumber
+import fitz  # pymupdf
 
 from ingestion.rfp_parser import parse_rfp_pdf
 from ingestion.response_loader import build_response_index
@@ -26,9 +26,9 @@ from scoring.wps_calculator import calculate_wps
 
 def extract_raw_pages(pdf_path: str):
     pages = []
-    with pdfplumber.open(pdf_path) as pdf:
-        for i, page in enumerate(pdf.pages, start=1):
-            pages.append({"page_number": i, "text": page.extract_text() or ""})
+    with fitz.open(pdf_path) as doc:
+        for i, page in enumerate(doc, start=1):
+            pages.append({"page_number": i, "text": page.get_text() or ""})
     return pages
 
 
@@ -97,9 +97,8 @@ def main():
             set_step(2, "Starting analysis...")
 
             # Pre-count chunks so the callback can show X/N
-            import pdfplumber as _plumber
-            with _plumber.open(rfp_path) as _pdf:
-                _page_count = len(_pdf.pages)
+            with fitz.open(rfp_path) as _doc:
+                _page_count = len(_doc)
             _estimated_chunks = max(1, _page_count // 10 + 1)
 
             def on_chunk_progress(current: int, total: int):

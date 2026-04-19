@@ -60,12 +60,12 @@ async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], s
         from scoring.poison_pill import detect_poison_pills
         from scoring.criterion_scorer import score_extracted_gates
         from scoring.wps_calculator import calculate_wps
-        import pdfplumber
+        import fitz  # pymupdf
 
         # Step 1 — Parse RFP
         def on_chunk_start(current, total):
             emit({"event": "progress", "step": 1, "total_steps": 5,
-                  "label": f"Calling Cohere API — RFP chunk {current}/{total}…",
+                  "label": f"Calling Gemini API — RFP chunk {current}/{total}…",
                   "pct": 5 + int((current - 1) / max(total, 1) * 20)})
 
         def on_chunk_done(current, total):
@@ -92,9 +92,9 @@ async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], s
 
         def _extract_pages(path):
             pages = []
-            with pdfplumber.open(path) as pdf:
-                for i, page in enumerate(pdf.pages, 1):
-                    pages.append({"page_number": i, "text": page.extract_text() or ""})
+            with fitz.open(path) as doc:
+                for i, page in enumerate(doc, 1):
+                    pages.append({"page_number": i, "text": page.get_text() or ""})
             return pages
 
         raw_pages = await asyncio.to_thread(_extract_pages, rfp_path)
@@ -119,7 +119,7 @@ async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], s
             emit({"event": "progress", "step": 4, "total_steps": 5,
                   "label": f"Scoring {total_criteria} criteria…", "pct": 50})
             scoring = await asyncio.to_thread(
-                score_extracted_gates, gates, retriever, 3, None, "command-r-plus", on_criterion
+                score_extracted_gates, gates, retriever, 3, None, "gemini-2.0-flash", on_criterion
             )
             criterion_results = scoring.get("criterion_results", [])
         else:

@@ -76,7 +76,7 @@ async def search(body: SearchIn, user: dict = Depends(get_current_user)):
     if not docs:
         raise HTTPException(400, "No documents in knowledge base. Upload some first.")
 
-    import cohere
+    import google.generativeai as genai
     from ingestion.kb_loader import build_kb_index
     from rag.retriever import make_retriever
 
@@ -88,21 +88,16 @@ async def search(body: SearchIn, user: dict = Depends(get_current_user)):
         return {"query": body.query, "summary": "No relevant content found.", "chunks": []}
 
     context = "\n\n---\n\n".join(chunks)
-    co = cohere.ClientV2(api_key=os.getenv("COHERE_API_KEY"))
-    resp = await asyncio.to_thread(
-        co.chat,
-        model="command-r-plus",
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You are a knowledge-base assistant for a bid management team. "
-                    "Summarise the relevant information from the provided excerpts to answer the query. "
-                    "Be concise, factual, and cite key details. If context is insufficient, say so."
-                ),
-            },
-            {"role": "user", "content": f"Query: {body.query}\n\nContext:\n{context}"},
-        ],
+    genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+    m = genai.GenerativeModel(
+        "gemini-2.0-flash",
+        system_instruction=(
+            "You are a knowledge-base assistant for a bid management team. "
+            "Summarise the relevant information from the provided excerpts to answer the query. "
+            "Be concise, factual, and cite key details. If context is insufficient, say so."
+        ),
+        generation_config=genai.GenerationConfig(temperature=0.2, max_output_tokens=600),
     )
-    summary = resp.message.content[0].text or ""
+    resp = await asyncio.to_thread(m.generate_content, f"Query: {body.query}\n\nContext:\n{context}")
+    summary = resp.text or ""
     return {"query": body.query, "summary": summary, "chunks": chunks}

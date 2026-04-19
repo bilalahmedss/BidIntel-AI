@@ -4,13 +4,13 @@ import os
 import re
 from typing import Any, Callable, Dict, List, Optional
 
-import cohere
-import pdfplumber
+import fitz  # pymupdf
+import google.generativeai as genai
 from dotenv import load_dotenv
 
 load_dotenv()
 
-DEFAULT_MODEL = "command-r-plus"
+DEFAULT_MODEL = "gemini-2.0-flash"
 MAX_CHUNK_TOKENS = 8000
 CHARS_PER_TOKEN_ESTIMATE = 4
 CHUNK_OVERLAP_PAGES = 1
@@ -82,19 +82,19 @@ def _coerce_float_or_none(value: Any) -> float | None:
 
 class RFPParser:
     def __init__(self, api_key: str | None = None, model: str = DEFAULT_MODEL) -> None:
-        api_key = api_key or os.getenv("COHERE_API_KEY")
+        api_key = api_key or os.getenv("GOOGLE_API_KEY")
         if not api_key:
-            raise ValueError("Cohere API key is required. Set COHERE_API_KEY.")
-        self.client = cohere.ClientV2(api_key=api_key)
+            raise ValueError("Google API key is required. Set GOOGLE_API_KEY.")
+        genai.configure(api_key=api_key)
         self.model = model
 
     def _extract_pdf_pages(self, pdf_path: str) -> List[Dict[str, Any]]:
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(f"PDF file not found: {pdf_path}")
         pages: List[Dict[str, Any]] = []
-        with pdfplumber.open(pdf_path) as pdf:
-            for i, page in enumerate(pdf.pages, start=1):
-                pages.append({"page_number": i, "text": page.extract_text() or ""})
+        with fitz.open(pdf_path) as doc:
+            for i, page in enumerate(doc, start=1):
+                pages.append({"page_number": i, "text": page.get_text() or ""})
         return pages
 
     def parse_pdf(
@@ -162,21 +162,28 @@ class RFPParser:
         return normalized
 
     def _extract_structured_from_chunk(self, chunk_text: str) -> Dict[str, Any]:
+        m = genai.GenerativeModel(
+            self.model,
+            system_instruction=SYSTEM_PROMPT,
+            generation_config=genai.GenerationConfig(
+                temperature=0,
+                max_output_tokens=MAX_COMPLETION_TOKENS,
+                response_mime_type="application/json",
+            ),
+        )
         try:
-            response = self.client.chat(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": chunk_text},
-                ],
-                response_format={"type": "json_object"},
-            )
-            raw = response.message.content[0].text.strip()
+            response = m.generate_content(chunk_text)
+            raw = response.text.strip()
         except Exception as e:
             msg = str(e)
-            if "429" in msg or "rate limit" in msg.lower():
-                raise RuntimeError("Cohere rate limit (429) — wait 60 s and retry, or upgrade quota.") from e
-            raise RuntimeError(f"Cohere API error: {msg}") from e
+            if "403" in msg or "PERMISSION_DENIED" in msg:
+                raise RuntimeError(
+                    "Gemini 403 PERMISSION_DENIED — get a fresh API key from aistudio.google.com "
+                    "and ensure the Generative Language API is enabled."
+                ) from e
+            if "429" in msg or "RESOURCE_EXHAUSTED" in msg:
+                raise RuntimeError("Gemini rate limit (429) — wait 60 s and retry, or upgrade quota.") from e
+            raise RuntimeError(f"Gemini API error: {msg}") from e
         try:
             parsed = json.loads(raw)
         except json.JSONDecodeError as exc:

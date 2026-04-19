@@ -2,12 +2,12 @@ import json
 import os
 from typing import Any, Dict, List
 
-import cohere
+import google.generativeai as genai
 from dotenv import load_dotenv
 
 load_dotenv()
 
-DEFAULT_MODEL = "command-r-plus"
+DEFAULT_MODEL = "gemini-2.0-flash"
 
 
 def _normalize_clause_text(text: str) -> str:
@@ -41,16 +41,17 @@ def _sweep_page_for_risks(page_text: str, model: str = DEFAULT_MODEL) -> Dict[st
         "{\"found\": bool, \"clause_text\": string, \"reason\": string, \"severity\": \"CRITICAL\"|\"HIGH\"|\"MEDIUM\"}. "
         "If nothing found return {\"found\": false}."
     )
-    co = cohere.ClientV2(api_key=os.getenv("COHERE_API_KEY"))
-    response = co.chat(
-        model=model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": json.dumps({"page_text": page_text[:12000]})},
-        ],
-        response_format={"type": "json_object"},
+    m = genai.GenerativeModel(
+        model,
+        system_instruction=system_prompt,
+        generation_config=genai.GenerationConfig(
+            temperature=0,
+            max_output_tokens=800,
+            response_mime_type="application/json",
+        ),
     )
-    raw = response.message.content[0].text.strip()
+    response = m.generate_content(json.dumps({"page_text": page_text[:12000]}))
+    raw = response.text.strip()
     parsed = json.loads(raw)
     if not isinstance(parsed, dict):
         return {"found": False}
@@ -68,9 +69,10 @@ def detect_poison_pills(
     groq_api_key: str | None = None,
     model: str = DEFAULT_MODEL,
 ) -> List[Dict[str, Any]]:
-    api_key = groq_api_key or os.getenv("COHERE_API_KEY")
+    api_key = groq_api_key or os.getenv("GOOGLE_API_KEY")
     if not api_key:
-        raise ValueError("Cohere API key is required. Set COHERE_API_KEY.")
+        raise ValueError("Google API key is required. Set GOOGLE_API_KEY.")
+    genai.configure(api_key=api_key)
 
     combined: List[Dict[str, Any]] = []
     seen_clauses = set()

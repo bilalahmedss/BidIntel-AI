@@ -1,6 +1,6 @@
 streamlit
 pandas
-pdfplumber
+pymupdf
 python-dotenv
 openai
 chromadb
