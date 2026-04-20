@@ -3,9 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { AlertCircle, Clock3, RefreshCw } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { getProjects } from '../api/projects'
-import { getSafetySummary } from '../api/safety'
 import { useAnalysis } from '../context/AnalysisContext'
-import AssurancePanel from '../components/governance/AssurancePanel'
 import NoticePanel from '../components/governance/NoticePanel'
 import RichMarkdown from '../components/ui/RichMarkdown'
 import ScoreRing from '../components/ui/ScoreRing'
@@ -35,7 +33,6 @@ function formatElapsed(seconds: number) {
 export default function AnalysisPage() {
   const [searchParams] = useSearchParams()
   const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: getProjects })
-  const { data: safetySummary } = useQuery({ queryKey: ['safety', 'summary'], queryFn: getSafetySummary })
   const { getJob, startJob, isRunning } = useAnalysis()
 
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null)
@@ -79,19 +76,15 @@ export default function AnalysisPage() {
       <section className="page-header">
         <div>
           <div className="eyebrow">Analysis workspace</div>
-          <h1 className="page-title">Run bid scoring and review requirements with a clean audit trail.</h1>
-          <p className="page-description">
-            Select a project, choose the financial scenario, and review the scored requirements, risks, and supporting evidence in a structured results pane.
-          </p>
+          <h1 className="page-title">Bid scoring and requirement analysis.</h1>
+          <p className="page-description">Select a project, run scoring, and review win probability, gaps, and risks.</p>
         </div>
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[370px_minmax(0,1fr)]">
         <aside className="space-y-6 xl:sticky xl:top-[108px] xl:h-[calc(100vh-144px)] xl:overflow-y-auto">
           <section className="surface p-6">
-            <div className="eyebrow">Input pane</div>
             <h2 className="section-title mt-2 text-xl">Analysis controls</h2>
-            <p className="section-subtitle">Choose the project context and trigger a scoring run without changing any backend logic.</p>
 
             <div className="mt-6 space-y-4">
               <div className="field-stack">
@@ -138,8 +131,6 @@ export default function AnalysisPage() {
             </NoticePanel>
           </section>
 
-          <AssurancePanel summary={safetySummary} mode="analysis" />
-
           {job && (job.status === 'queued' || job.status === 'running' || job.status === 'error') && (
             <section className="surface p-6">
               <div className="flex items-center justify-between gap-3">
@@ -177,11 +168,8 @@ export default function AnalysisPage() {
           {!result ? (
             <div className="surface hero-card p-10 text-center">
               <div className="mx-auto max-w-xl">
-                <div className="eyebrow justify-center">Insights pane</div>
                 <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-950">Analysis results will appear here.</h2>
-                <p className="mt-4 text-sm text-slate-500">
-                  Run a project analysis to render the win score, requirement coverage, risk cards, markdown-based summaries, and supporting evidence excerpts.
-                </p>
+                <p className="mt-4 text-sm text-slate-500">Select a project and run analysis to see scores, gaps, and risks.</p>
               </div>
             </div>
           ) : (
@@ -197,9 +185,6 @@ export default function AnalysisPage() {
                       <div>
                         <div className="eyebrow">Results summary</div>
                         <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">Scenario: {scenario.charAt(0).toUpperCase() + scenario.slice(1)}</h2>
-                        <p className="mt-2 text-sm text-slate-500">
-                          Structured scoring output with markdown-rendered insight cards, evidence excerpts, and compliance signals.
-                        </p>
                       </div>
                       <StatusBadge tone={VERDICT_TONE[verdict] || 'neutral'}>{verdict || 'No verdict'}</StatusBadge>
                     </div>
@@ -237,8 +222,7 @@ export default function AnalysisPage() {
               <section className="surface p-6">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
-                    <div className="eyebrow">Detailed findings</div>
-                    <h2 className="section-title mt-2 text-xl">Insights and evidence</h2>
+                    <h2 className="section-title mt-2 text-xl">Detailed findings</h2>
                   </div>
                   <div className="segmented-control">
                     {[

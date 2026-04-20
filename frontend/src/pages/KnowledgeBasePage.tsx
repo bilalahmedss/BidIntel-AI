@@ -35,10 +35,8 @@ export default function KnowledgeBasePage() {
       <section className="page-header">
         <div>
           <div className="eyebrow">Knowledge base</div>
-          <h1 className="page-title">Centralize reusable company evidence for every bid.</h1>
-          <p className="page-description">
-            Upload certifications, capability statements, CVs, financials, and past proposals once so analysis and Q&A can ground on them automatically.
-          </p>
+          <h1 className="page-title">Company knowledge base.</h1>
+          <p className="page-description">Upload company documents once — they're used automatically in every analysis and Ask conversation.</p>
         </div>
         <StatusBadge tone="info">
           <ShieldCheck size={13} />
@@ -52,9 +50,7 @@ export default function KnowledgeBasePage() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(360px,0.9fr)_minmax(0,1.2fr)]">
         <section className="surface p-6">
-          <div className="eyebrow">Input pane</div>
-          <h2 className="section-title mt-2 text-xl">Upload reference material</h2>
-          <p className="section-subtitle">Accepted formats: PDF and TXT. Documents are indexed for analysis, Ask, and retrieval workflows.</p>
+          <h2 className="section-title mt-2 text-xl">Upload documents</h2>
 
           <label className="upload-zone mt-6 cursor-pointer">
             <UploadCloud size={30} className="text-blue-600" />
@@ -67,9 +63,7 @@ export default function KnowledgeBasePage() {
         <section className="surface p-6">
           <div className="page-header">
             <div>
-              <div className="eyebrow">Insights pane</div>
               <h2 className="section-title mt-2 text-xl">Indexed documents</h2>
-              <p className="section-subtitle">Every document below is available for grounded retrieval across the platform.</p>
             </div>
             <StatusBadge tone="neutral">{documents.length} document{documents.length === 1 ? '' : 's'}</StatusBadge>
           </div>
@@ -78,7 +72,7 @@ export default function KnowledgeBasePage() {
             <div className="surface-soft mt-6 p-10 text-center">
               <FileText size={32} className="mx-auto text-slate-400" />
               <div className="mt-4 text-lg font-bold text-slate-950">No knowledge documents uploaded yet</div>
-              <p className="mt-2 text-sm text-slate-500">Upload reusable company evidence in the left pane to start grounding responses.</p>
+              <p className="mt-2 text-sm text-slate-500">No documents uploaded yet.</p>
             </div>
           ) : (
             <div className="mt-6 space-y-4">

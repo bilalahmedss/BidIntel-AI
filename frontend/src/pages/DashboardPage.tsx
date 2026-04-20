@@ -30,9 +30,7 @@ export default function DashboardPage() {
           <div>
             <div className="eyebrow">Control center</div>
             <h1 className="page-title">Welcome back, {user?.full_name || user?.email?.split('@')[0]}.</h1>
-            <p className="page-description">
-              Review live pursuit activity, jump into project workspaces, and keep proposal operations grounded in a cleaner application-style workspace.
-            </p>
+            <p className="page-description">An overview of your active bids and upcoming deadlines.</p>
           </div>
 
           <div>
@@ -84,9 +82,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="surface-soft p-4 text-sm text-slate-500">
-              A compact operational summary for bid teams. This stays on the dashboard as your portfolio-health widget.
-            </div>
           </div>
         </div>
       </section>
@@ -96,8 +91,7 @@ export default function DashboardPage() {
           <div className="page-header">
             <div>
               <div className="eyebrow">Recent work</div>
-              <h2 className="section-title mt-2 text-xl">Project portfolio snapshot</h2>
-              <p className="section-subtitle">The latest response projects, status markers, and owners at a glance.</p>
+              <h2 className="section-title mt-2 text-xl">Project portfolio</h2>
             </div>
             <button className="secondary-button" onClick={() => navigate('/projects')}>
               View all
@@ -141,7 +135,6 @@ export default function DashboardPage() {
         <div className="surface dashboard-panel">
           <div className="eyebrow">Next actions</div>
           <h2 className="section-title mt-2 text-xl">Upcoming deadlines</h2>
-          <p className="section-subtitle">Prioritize active bids that already have deadlines assigned.</p>
 
           {dueSoon.length === 0 ? (
             <div className="dashboard-empty mt-6 text-sm text-slate-500">

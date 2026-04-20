@@ -3,9 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { MessageSquareText, Send, Trash2 } from 'lucide-react'
 import { clearHistory, getChatHistory, streamAsk } from '../api/ask'
 import { getProjects } from '../api/projects'
-import { getSafetySummary } from '../api/safety'
 import { useAuth } from '../context/AuthContext'
-import AssurancePanel from '../components/governance/AssurancePanel'
 import NoticePanel from '../components/governance/NoticePanel'
 import RichMarkdown from '../components/ui/RichMarkdown'
 import StatusBadge from '../components/ui/StatusBadge'
@@ -21,7 +19,6 @@ interface Message {
 export default function AskPage() {
   const { user } = useAuth()
   const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: getProjects })
-  const { data: safetySummary } = useQuery({ queryKey: ['safety', 'summary'], queryFn: getSafetySummary })
 
   const [projectId, setProjectId] = useState<number | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -94,23 +91,19 @@ export default function AskPage() {
       <section className="page-header">
         <div>
           <div className="eyebrow">Guided Q&A</div>
-          <h1 className="page-title">Ask grounded questions against your project context.</h1>
-          <p className="page-description">
-            Responses are grounded on the project RFP, uploaded bid response, knowledge base documents, and the latest analysis output.
-          </p>
+          <h1 className="page-title">Ask questions about your bid.</h1>
+          <p className="page-description">Answers are grounded on the project RFP, bid response, and knowledge base.</p>
         </div>
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="space-y-6 xl:sticky xl:top-[108px] xl:h-[calc(100vh-144px)] xl:overflow-y-auto">
           <section className="surface p-6">
-            <div className="eyebrow">Input pane</div>
             <h2 className="section-title mt-2 text-xl">Conversation setup</h2>
-            <p className="section-subtitle">Choose the project context first so the assistant can ground answers on the correct bid material.</p>
 
             <div className="mt-6 space-y-4">
               <div className="field-stack">
-                <label className="field-label">Project context</label>
+                <label className="field-label">Project</label>
                 <select value={projectId ?? ''} onChange={(event) => setProjectId(event.target.value ? Number(event.target.value) : null)}>
                   <option value="">Select a project</option>
                   {projects.map((project: any) => (
@@ -119,7 +112,6 @@ export default function AskPage() {
                     </option>
                   ))}
                 </select>
-                <div className="field-help">The assistant uses the selected project's RFP, response, sections, and prior analysis context.</div>
               </div>
 
               {projectId && messages.length > 0 && (
@@ -140,15 +132,12 @@ export default function AskPage() {
             </NoticePanel>
           </section>
 
-          <AssurancePanel summary={safetySummary} mode="ask" />
         </aside>
 
         <section className="surface p-6 conversation-shell min-w-0">
           <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 pb-5">
             <div>
-              <div className="eyebrow">Insights pane</div>
-              <h2 className="section-title mt-2 text-xl">Conversation stream</h2>
-              <p className="section-subtitle">Markdown answers are rendered into readable cards rather than raw text dumps.</p>
+              <h2 className="section-title mt-2 text-xl">Conversation</h2>
             </div>
             <div className="flex flex-wrap gap-2">
               <StatusBadge tone={projectId ? 'info' : 'warn'}>{projectId ? 'Project context active' : 'Select project context'}</StatusBadge>
@@ -163,9 +152,6 @@ export default function AskPage() {
                   <MessageSquareText size={28} />
                 </div>
                 <h3 className="mt-5 text-2xl font-extrabold tracking-tight text-slate-950">Ask anything about the bid.</h3>
-                <p className="mt-3 text-sm text-slate-500">
-                  Try questions about submission requirements, certifications, capability gaps, past performance, or the current response draft.
-                </p>
               </div>
             ) : (
               messages.map((message, index) => (

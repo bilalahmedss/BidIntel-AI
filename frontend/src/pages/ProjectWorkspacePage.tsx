@@ -73,9 +73,7 @@ export default function ProjectWorkspacePage() {
         <div>
           <div className="eyebrow">Project workspace</div>
           <h1 className="page-title">{project.title}</h1>
-          <p className="page-description">
-            Manage project metadata, collaborators, and editable response sections here. Run scoring and requirement analysis from the dedicated Analysis tab.
-          </p>
+          <p className="page-description">Edit response sections, manage collaborators, and open analysis from here.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <StatusBadge tone="neutral">{sections.length} section{sections.length === 1 ? '' : 's'}</StatusBadge>
@@ -112,9 +110,6 @@ export default function ProjectWorkspacePage() {
                   Add member
                 </button>
               </div>
-              <p className="mt-4 text-sm text-slate-500">
-                Analysis runs happen in the dedicated Analysis tab. This workspace is for project drafting and section management only.
-              </p>
             </div>
           </div>
 

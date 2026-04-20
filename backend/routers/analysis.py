@@ -102,6 +102,7 @@ async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], s
 
         from ingestion.rfp_parser import parse_rfp_pdf
         from ingestion.response_loader import build_response_index
+        from ingestion.project_indexer import load_project_index, build_project_index
         from rag.retriever import make_retriever
         from scoring.poison_pill import detect_poison_pills
         from scoring.criterion_scorer import score_extracted_gates
@@ -156,12 +157,15 @@ async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], s
         if has_response or has_brain:
             retrievers = []
             if has_response:
-                emit({"event": "progress", "step": 3, "total_steps": 5, "label": "Indexing bid response…", "pct": 40})
-                response_index = await asyncio.to_thread(build_response_index, response_path)
+                emit({"event": "progress", "step": 3, "total_steps": 5, "label": "Loading bid response index…", "pct": 40})
+                response_index = await asyncio.to_thread(load_project_index, job.project_id, "response")
+                if response_index is None:
+                    # Index not ready yet — build it now as a fallback
+                    emit({"event": "progress", "step": 3, "total_steps": 5, "label": "Building bid response index…", "pct": 40})
+                    response_index = await asyncio.to_thread(build_project_index, job.project_id, response_path, "response")
                 retrievers.append(make_retriever(response_index))
             if has_brain:
-                label = "Indexing company knowledge base…" if not has_response else "Indexing company knowledge base…"
-                emit({"event": "progress", "step": 3, "total_steps": 5, "label": label, "pct": 44})
+                emit({"event": "progress", "step": 3, "total_steps": 5, "label": "Loading company knowledge base…", "pct": 44})
                 from ingestion.kb_loader import build_kb_index
                 brain_index = await asyncio.to_thread(build_kb_index, str(BRAIN_DIR))
                 retrievers.append(make_retriever(brain_index))

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from pathlib import Path
@@ -21,6 +22,18 @@ async def _save_file(project_id: int, kind: str, f: UploadFile) -> str:
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(await f.read())
     return str(dest)
+
+
+async def _index_file(project_id: int, pdf_path: str, kind: str) -> None:
+    """Build the persistent vector index for a project PDF in the background."""
+    try:
+        from ingestion.project_indexer import build_project_index
+        await asyncio.to_thread(build_project_index, project_id, pdf_path, kind)
+    except Exception as exc:
+        import logging
+        logging.getLogger("bidintel.projects").warning(
+            "Background indexing failed for project %s %s: %s", project_id, kind, exc
+        )
 
 
 def _project_out(p: dict, db) -> dict:
@@ -86,8 +99,8 @@ async def create_project(
     pid = cur.lastrowid
     db.execute("INSERT INTO project_members (project_id, user_id, role) VALUES (?,?,?)", (pid, user["id"], "admin"))
 
-    await _save_file(pid, "rfp", rfp_pdf)
-    await _save_file(pid, "response", response_pdf)
+    rfp_path = await _save_file(pid, "rfp", rfp_pdf)
+    response_path = await _save_file(pid, "response", response_pdf)
 
     db.execute("UPDATE projects SET rfp_filename=?, response_filename=? WHERE id=?",
                (rfp_pdf.filename, response_pdf.filename, pid))
@@ -95,6 +108,11 @@ async def create_project(
     p = row(db.execute("SELECT * FROM projects WHERE id=?", (pid,)).fetchone())
     out = _project_out(p, db)
     db.close()
+
+    # Index both PDFs in the background — non-blocking
+    asyncio.create_task(_index_file(pid, rfp_path, "rfp"))
+    asyncio.create_task(_index_file(pid, response_path, "response"))
+
     return out
 
 
@@ -141,11 +159,13 @@ async def update_project(
     if "title" in updates and not updates["title"]:
         raise HTTPException(400, "title: This field is required")
     if rfp_pdf and rfp_pdf.filename:
-        await _save_file(pid, "rfp", rfp_pdf)
+        rfp_path = await _save_file(pid, "rfp", rfp_pdf)
         updates["rfp_filename"] = rfp_pdf.filename
+        asyncio.create_task(_index_file(pid, rfp_path, "rfp"))
     if response_pdf and response_pdf.filename:
-        await _save_file(pid, "response", response_pdf)
+        response_path = await _save_file(pid, "response", response_pdf)
         updates["response_filename"] = response_pdf.filename
+        asyncio.create_task(_index_file(pid, response_path, "response"))
 
     if updates:
         sets = ", ".join(f"{k}=?" for k in updates)
@@ -169,6 +189,8 @@ def delete_project(pid: int, user: dict = Depends(get_current_user)):
         fp = UPLOAD_DIR / kind / f"{pid}_{kind}.pdf"
         if fp.exists():
             fp.unlink()
+    from ingestion.project_indexer import delete_project_indices
+    delete_project_indices(pid)
     db.execute("DELETE FROM projects WHERE id=?", (pid,))
     db.commit()
     db.close()

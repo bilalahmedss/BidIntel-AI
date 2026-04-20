@@ -17,7 +17,6 @@ ROOT = Path(__file__).resolve().parents[2]
 UPLOAD_DIR = ROOT / "data" / "uploads"
 BRAIN_DIR = ROOT / "data" / "company_brain"
 
-_response_index_cache: dict = {}
 _safety = QuerySafetyLayer()
 
 
@@ -25,13 +24,15 @@ def _build_context(project_id: int, question: str) -> str:
     import sys
     sys.path.insert(0, str(ROOT))
 
+    from ingestion.project_indexer import load_project_index, build_project_index
+    from rag.retriever import make_retriever
+
     chunks = []
 
     # Company brain
     if BRAIN_DIR.exists() and any(BRAIN_DIR.iterdir()):
         try:
             from ingestion.kb_loader import build_kb_index
-            from rag.retriever import make_retriever
             idx = build_kb_index(str(BRAIN_DIR))
             ret = make_retriever(idx)
             brain_chunks = ret(question, top_k=3)
@@ -40,35 +41,46 @@ def _build_context(project_id: int, question: str) -> str:
         except Exception:
             pass
 
-    # Project RFP (from cached parsed JSON)
-    db = get_db()
-    p = row(db.execute("SELECT parsed_rfp_json, rfp_filename FROM projects WHERE id=?", (project_id,)).fetchone())
-    db.close()
-
-    if p and p.get("parsed_rfp_json"):
+    # RFP — semantic search over full indexed text
+    rfp_index = load_project_index(project_id, "rfp")
+    if rfp_index:
         try:
-            parsed = json.loads(p["parsed_rfp_json"])
-            rfp_text = " ".join(
-                c.get("description", "") + " ".join(c.get("checklist_signals", []))
-                for g in parsed.get("gates", [])
-                for c in g.get("criteria", [])
-            )
-            if rfp_text.strip():
-                chunks.append(f"## RFP Requirements\n{rfp_text[:3000]}")
+            ret = make_retriever(rfp_index)
+            rfp_chunks = ret(question, top_k=3)
+            if rfp_chunks:
+                chunks.append("## RFP\n" + "\n\n---\n\n".join(rfp_chunks))
         except Exception:
             pass
+    else:
+        # Fallback: structured output from the last analysis parse
+        db = get_db()
+        p = row(db.execute("SELECT parsed_rfp_json FROM projects WHERE id=?", (project_id,)).fetchone())
+        db.close()
+        if p and p.get("parsed_rfp_json"):
+            try:
+                parsed = json.loads(p["parsed_rfp_json"])
+                rfp_text = " ".join(
+                    c.get("description", "") + " ".join(c.get("checklist_signals", []))
+                    for g in parsed.get("gates", [])
+                    for c in g.get("criteria", [])
+                )
+                if rfp_text.strip():
+                    chunks.append(f"## RFP Requirements\n{rfp_text[:3000]}")
+            except Exception:
+                pass
 
-    # Project response PDF
-    resp_path = UPLOAD_DIR / "response" / f"{project_id}_response.pdf"
-    if resp_path.exists():
-        cache_key = str(resp_path)
+    # Bid response — load persistent index, fall back to building if not ready
+    resp_index = load_project_index(project_id, "response")
+    if resp_index is None:
+        resp_path = UPLOAD_DIR / "response" / f"{project_id}_response.pdf"
+        if resp_path.exists():
+            try:
+                resp_index = build_project_index(project_id, str(resp_path), "response")
+            except Exception:
+                pass
+    if resp_index:
         try:
-            from rag.retriever import make_retriever
-            from ingestion.response_loader import build_response_index
-            if cache_key not in _response_index_cache:
-                _response_index_cache[cache_key] = build_response_index(str(resp_path))
-            idx = _response_index_cache[cache_key]
-            ret = make_retriever(idx)
+            ret = make_retriever(resp_index)
             resp_chunks = ret(question, top_k=3)
             if resp_chunks:
                 chunks.append("## Bid Response\n" + "\n\n---\n\n".join(resp_chunks))

@@ -89,10 +89,8 @@ export default function ProjectsPage() {
       <section className="page-header">
         <div>
           <div className="eyebrow">Project portfolio</div>
-          <h1 className="page-title">Create, upload, and manage bid response projects.</h1>
-          <p className="page-description">
-            Each project keeps the RFP, bid response, ownership details, and editable response workspace tied together in one place.
-          </p>
+          <h1 className="page-title">Manage bid response projects.</h1>
+          <p className="page-description">Create projects, upload RFP and response PDFs, and track your portfolio.</p>
         </div>
         <button className="primary-button" onClick={() => setShowForm((current) => !current)}>
           <FolderPlus size={16} />
@@ -102,9 +100,8 @@ export default function ProjectsPage() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(360px,0.95fr)_minmax(0,1.25fr)]">
         <section className="surface p-6">
-          <div className="eyebrow">Input pane</div>
-          <h2 className="section-title mt-2 text-xl">Project intake</h2>
-          <p className="section-subtitle">Capture the project record and upload the source documents used for analysis.</p>
+          <h2 className="section-title mt-2 text-xl">New project</h2>
+          <p className="section-subtitle">Fill in the project details and upload the RFP and bid response PDFs.</p>
 
           {showForm ? (
             <form onSubmit={handleSubmit} className="mt-6 space-y-5">
@@ -192,13 +189,9 @@ export default function ProjectsPage() {
             </form>
           ) : (
             <div className="surface-soft mt-6 p-6">
-              <div className="text-base font-bold text-slate-950">Ready for a new bid?</div>
-              <p className="mt-2 text-sm text-slate-500">
-                Open the intake form to register a project and upload the RFP and response PDFs. Analysis can then be run from the Analysis tab.
-              </p>
-              <button className="primary-button mt-5" onClick={() => setShowForm(true)}>
+              <button className="primary-button" onClick={() => setShowForm(true)}>
                 <FolderPlus size={16} />
-                Start a new project
+                New project
               </button>
             </div>
           )}
@@ -208,8 +201,8 @@ export default function ProjectsPage() {
           <div className="page-header">
             <div>
               <div className="eyebrow">Project directory</div>
-              <h2 className="section-title mt-2 text-xl">Active response projects</h2>
-              <p className="section-subtitle">Open any project workspace to manage sections, collaborators, and response drafting.</p>
+              <h2 className="section-title mt-2 text-xl">Projects</h2>
+              <p className="section-subtitle">Open a project workspace to manage sections, collaborators, and run analysis.</p>
             </div>
             <div className="ui-badge ui-badge-neutral">{projects.length} project{projects.length === 1 ? '' : 's'}</div>
           </div>
