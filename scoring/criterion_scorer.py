@@ -10,16 +10,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DEFAULT_MODEL = "llama-3.3-70b-versatile"
+DEFAULT_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 BATCH_SIZE = 5
 MAX_BATCH_PAYLOAD_CHARS = 18_000
 MAX_BATCH_CONTEXT_CHARS = 12_000
 MAX_BATCH_WORKERS = int(os.getenv("SCORING_BATCH_WORKERS", "3"))
 _safety = QuerySafetyLayer()
-
-def _normalize_signal(signal: str) -> str:
-    return " ".join(signal.strip().lower().split())
-
 
 def _trim_chunks(chunks: List[str], max_chars: int) -> List[str]:
     trimmed: List[str] = []
@@ -40,20 +36,6 @@ def _compact_snippet(text: str, max_chars: int = 260) -> str:
     if len(compact) <= max_chars:
         return compact
     return compact[: max_chars - 3].rstrip() + "..."
-
-
-def _normalize_matched_signals(checklist_signals: List[str], matched_signals: List[str]) -> List[str]:
-    allowed_by_norm = {_normalize_signal(s): s for s in checklist_signals}
-    matched: List[str] = []
-    seen = set()
-    for item in matched_signals:
-        if not isinstance(item, str):
-            continue
-        canonical = allowed_by_norm.get(_normalize_signal(item))
-        if canonical and canonical not in seen:
-            matched.append(canonical)
-            seen.add(canonical)
-    return matched
 
 
 def _build_batch_payload(
@@ -93,11 +75,18 @@ def _build_batch_payload(
 
 
 def build_scoring_system_prompt() -> str:
+    # Decoupled boolean scoring: the LLM emits explicit true/false facts per
+    # checklist signal; Python derives matched_signals and gap_signals
+    # deterministically from those booleans — no fuzzy string normalisation.
+    # This eliminates the "LLM scoring hallucination" trap where models assign
+    # arbitrary confidence numbers; here the LLM only judges presence/absence.
     base_prompt = (
         "Given the shared document excerpts and these scoring criteria, return ONLY a JSON object "
-        "keyed by criterion_id. Each value must be an object with key 'matched_signals' containing "
-        "only the checklist signals clearly present in the excerpts for that criterion. Do not invent "
-        "signals and do not include criterion IDs that were not provided."
+        "keyed by criterion_id. Each value must have key 'signals' — a dictionary where every "
+        "checklist signal from the criterion is a key and the value is true if the retrieved "
+        "excerpts explicitly and directly evidence that signal, or false if the evidence is absent "
+        "or only implied. Echo each signal key exactly as given. Do not invent evidence. "
+        "Be conservative: mark true only when the excerpts directly address the signal."
     )
     return _safety.build_guarded_system_prompt(base_prompt)
 
@@ -189,12 +178,18 @@ def _score_batch_payload(
     scored_batch: List[Dict[str, Any]] = []
     for item in criteria_batch:
         evidence_snippets = evidence_by_id.get(item["criterion_id"], [])
-        matched_signals = _normalize_matched_signals(
-            item["checklist_signals"],
-            validated.root[item["criterion_id"]].matched_signals,
-        )
-        matched_norm = {_normalize_signal(signal) for signal in matched_signals}
-        gap_signals = [signal for signal in item["checklist_signals"] if _normalize_signal(signal) not in matched_norm]
+
+        # Boolean-fact decoupling: read the LLM's explicit true/false per signal.
+        # Python derives matched/gap lists deterministically — no string fuzzing.
+        signals_map: Dict[str, bool] = validated.root[item["criterion_id"]].signals
+        matched_signals = [sig for sig, met in signals_map.items() if met]
+        gap_signals = [sig for sig, met in signals_map.items() if not met]
+        # Any signal the LLM failed to echo is conservatively treated as a gap
+        echoed = set(signals_map.keys())
+        for sig in item["checklist_signals"]:
+            if sig not in echoed:
+                gap_signals.append(sig)
+
         scored_batch.append(
             {
                 **item,

@@ -7,13 +7,13 @@ from typing import Any, Callable, Dict, List, Optional
 from backend.groq_client import create_json_completion
 from backend.llm_schemas import validate_rfp_extraction_payload
 from backend.safety import QuerySafetyLayer
-from ingestion.pdf_utils import extract_pdf_pages
+from ingestion.pdf_utils import extract_pdf_as_markdown
 from dotenv import load_dotenv
 
 load_dotenv()
 _safety = QuerySafetyLayer()
 
-DEFAULT_MODEL = "llama-3.3-70b-versatile"
+DEFAULT_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 MAX_CHUNK_TOKENS = 8000
 CHARS_PER_TOKEN_ESTIMATE = 4
 CHUNK_OVERLAP_PAGES = 1
@@ -91,11 +91,10 @@ class RFPParser:
             raise ValueError("Groq API key is required. Set GROQ_API_KEY.")
         self.model = model
 
-    def _extract_pdf_pages(self, pdf_path: str) -> List[Dict[str, Any]]:
+    def _extract_pdf_markdown(self, pdf_path: str) -> str:
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(f"PDF file not found: {pdf_path}")
-        pages = extract_pdf_pages(pdf_path)
-        return pages
+        return extract_pdf_as_markdown(pdf_path)
 
     def parse_pdf(
         self,
@@ -103,8 +102,8 @@ class RFPParser:
         on_chunk_progress: Optional[Callable[[int, int], None]] = None,
         on_chunk_start: Optional[Callable[[int, int], None]] = None,
     ) -> Dict[str, Any]:
-        pages = self._extract_pdf_pages(pdf_path)
-        chunks = self._build_text_chunks_with_overlap(pages)
+        md = self._extract_pdf_markdown(pdf_path)
+        chunks = self._split_markdown_by_sections(md)
         if not chunks:
             chunks = ["(No extractable text found in PDF.)"]
 
@@ -193,41 +192,74 @@ class RFPParser:
         validated = validate_rfp_extraction_payload(normalized)
         return validated.model_dump()
 
-    def _build_text_chunks_with_overlap(self, pages: List[Dict[str, Any]]) -> List[str]:
-        # Keep input comfortably below model/account limits after adding prompt + completion budget.
-        max_chars = min(MAX_CHUNK_TOKENS * CHARS_PER_TOKEN_ESTIMATE, 20000)
-        page_blocks = []
-        for page in pages:
-            text = str(page.get("text", "") or "").strip()
-            if not text:
-                continue
-            page_number = int(page.get("page_number", 0) or 0)
-            page_blocks.append((page_number, f"--- PAGE {page_number} ---\n{text}\n"))
+    def _split_markdown_by_sections(self, md: str) -> List[str]:
+        """
+        Split a Markdown document at heading boundaries (# or ##).
 
+        Keeping table rows inside the same chunk as their column headers is the
+        whole point of layout-aware parsing: a compliance matrix like
+          | Requirement | Mandatory |
+          | ISO 27001   | YES       |
+        must not be split so that only the data rows reach the LLM without the
+        header context that gives them meaning.
+
+        Falls back to page-break markers (--- PAGE N ---) when no Markdown
+        headings are present (OCR fallback path in extract_pdf_as_markdown).
+        """
+        max_chars = min(MAX_CHUNK_TOKENS * CHARS_PER_TOKEN_ESTIMATE, 20000)
+
+        # Primary split: Markdown section headings
+        heading_re = re.compile(r"^#{1,2} ", re.MULTILINE)
+        positions = [m.start() for m in heading_re.finditer(md)]
+
+        if positions:
+            sections: List[str] = []
+            for i, pos in enumerate(positions):
+                end = positions[i + 1] if i + 1 < len(positions) else len(md)
+                section = md[pos:end].strip()
+                if section:
+                    sections.append(section)
+            return self._pack_sections(sections, max_chars)
+
+        # Fallback: page-break markers produced by the OCR path
+        page_sections = [s.strip() for s in re.split(r"--- PAGE \d+ ---", md) if s.strip()]
+        if page_sections:
+            return self._pack_sections(page_sections, max_chars)
+
+        # Last resort: raw character chunking with overlap
         chunks: List[str] = []
         i = 0
-        while i < len(page_blocks):
+        while i < len(md):
+            chunks.append(md[i : i + max_chars])
+            i += max_chars - 500  # 500-char overlap
+        return [c for c in chunks if c.strip()]
+
+    def _pack_sections(self, sections: List[str], max_chars: int) -> List[str]:
+        """
+        Greedily pack sections into LLM-sized chunks with 1-section overlap so
+        context near chunk boundaries is not lost (mirrors the old 1-page overlap).
+        """
+        chunks: List[str] = []
+        i = 0
+        while i < len(sections):
+            parts: List[str] = []
+            total = 0
             j = i
-            chunk_parts: List[str] = []
-            total_chars = 0
-            while j < len(page_blocks):
-                _, block = page_blocks[j]
-                if chunk_parts and total_chars + len(block) > max_chars:
+            while j < len(sections):
+                s = sections[j]
+                if parts and total + len(s) + 2 > max_chars:
                     break
-                chunk_parts.append(block)
-                total_chars += len(block)
+                parts.append(s)
+                total += len(s) + 2
                 j += 1
-
-            if not chunk_parts:
-                _, block = page_blocks[i]
-                chunk_parts = [block[:max_chars]]
+            if not parts:
+                # Single oversized section — truncate it
+                parts = [sections[i][:max_chars]]
                 j = i + 1
-
-            chunks.append("\n".join(chunk_parts))
-            if j >= len(page_blocks):
+            chunks.append("\n\n".join(parts))
+            if j >= len(sections):
                 break
-            i = max(j - CHUNK_OVERLAP_PAGES, i + 1)
-
+            i = max(j - 1, i + 1)  # 1-section overlap
         return chunks
 
     def _normalize_schema(self, data: Dict[str, Any]) -> Dict[str, Any]:

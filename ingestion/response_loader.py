@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Any, List
 
 import chromadb
-from ingestion.pdf_utils import extract_pdf_pages
 from dotenv import load_dotenv
 from llama_index.core import Document, Settings, StorageContext, VectorStoreIndex
 from llama_index.core.base.embeddings.base import BaseEmbedding
@@ -11,10 +10,13 @@ from llama_index.vector_stores.chroma import ChromaVectorStore
 from pydantic import PrivateAttr
 from sentence_transformers import SentenceTransformer
 
+from ingestion.pdf_utils import extract_pdf_as_markdown
+from rag.retriever import HybridIndex
+
 load_dotenv()
 
 COLLECTION_NAME = "bid_response"
-_CHUNK_SIZE = 800
+_CHUNK_SIZE = 800   # words per chunk
 _CHUNK_OVERLAP = 100
 
 
@@ -50,18 +52,33 @@ def _chunk_text(text: str, chunk_size: int = _CHUNK_SIZE, overlap: int = _CHUNK_
     return chunks
 
 
-def build_response_index(pdf_path: str) -> VectorStoreIndex:
-    """Index a bid response PDF into an ephemeral ChromaDB for this session."""
+def build_response_index(pdf_path: str) -> HybridIndex:
+    """
+    Index a bid response PDF into an ephemeral ChromaDB for this session.
+
+    Uses layout-aware Markdown extraction (via extract_pdf_as_markdown) so
+    that tables in the response — e.g. pricing grids, compliance sign-off
+    tables — are preserved as pipe-table rows rather than garbled columns.
+
+    Returns a HybridIndex that bundles the VectorStoreIndex together with the
+    plain-text chunk corpus for BM25 keyword search in make_retriever().
+    """
     if not os.path.exists(pdf_path):
         raise FileNotFoundError(f"Response PDF not found: {pdf_path}")
 
+    # Layout-aware extraction: tables arrive as Markdown pipe-table rows
+    md = extract_pdf_as_markdown(pdf_path)
+
+    corpus: List[str] = []
     documents: List[Document] = []
-    for p in extract_pdf_pages(pdf_path):
-        text = p["text"].strip()
-        if not text:
-            continue
-        for chunk in _chunk_text(text):
-            documents.append(Document(text=chunk, metadata={"page": p["page_number"], "source": "bid_response"}))
+    page_num = 1
+    for chunk in _chunk_text(md):
+        corpus.append(chunk)
+        documents.append(Document(
+            text=chunk,
+            metadata={"page": page_num, "source": "bid_response"},
+        ))
+        page_num += 1  # approximate — word chunks don't have exact page numbers
 
     if not documents:
         raise ValueError("No extractable text found in bid response PDF.")
@@ -77,4 +94,5 @@ def build_response_index(pdf_path: str) -> VectorStoreIndex:
     index = VectorStoreIndex.from_documents(
         documents, storage_context=storage_context, embed_model=embedding_model
     )
-    return index
+    # Return HybridIndex so make_retriever can enable BM25 alongside vector search
+    return HybridIndex(vector_index=index, corpus=corpus)

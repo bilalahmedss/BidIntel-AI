@@ -23,3 +23,9 @@ chromadb
 llama-index
 llama-index-vector-stores-chroma
 sentence-transformers
+
+# Hybrid search — BM25 keyword layer for exact-match retrieval
+rank-bm25>=0.2.2
+
+# Layout-aware PDF parsing — preserves tables as Markdown pipe tables
+pymupdf4llm>=0.0.17

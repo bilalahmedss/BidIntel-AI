@@ -11,6 +11,8 @@ from llama_index.vector_stores.chroma import ChromaVectorStore
 from pydantic import PrivateAttr
 from sentence_transformers import SentenceTransformer
 
+from rag.retriever import HybridIndex
+
 load_dotenv()
 
 DEFAULT_COLLECTION_NAME = "company_brain"
@@ -45,7 +47,14 @@ def build_kb_index(
     source_dir: str,
     persist_dir: str = DEFAULT_PERSIST_DIR,
     collection_name: str = DEFAULT_COLLECTION_NAME,
-) -> VectorStoreIndex:
+) -> HybridIndex:
+    """
+    Load company knowledge-base documents and persist them in ChromaDB.
+
+    Returns a HybridIndex so make_retriever() can enable BM25 alongside
+    vector search — critical for exact-string lookups like certification
+    codes (e.g. "ISO-27001") that semantic search may silently miss.
+    """
     if not os.path.isdir(source_dir):
         raise FileNotFoundError(f"Source directory does not exist: {source_dir}")
 
@@ -53,6 +62,9 @@ def build_kb_index(
     documents = reader.load_data()
     if not documents:
         raise ValueError(f"No .pdf or .txt documents found in: {source_dir}")
+
+    # Collect corpus for BM25 — same text that enters the vector store
+    corpus: List[str] = [doc.text for doc in documents if doc.text.strip()]
 
     embedding_model = _build_embedding_model()
     Settings.embed_model = embedding_model
@@ -65,7 +77,7 @@ def build_kb_index(
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
 
     index = VectorStoreIndex.from_documents(documents, storage_context=storage_context, embed_model=embedding_model)
-    return index
+    return HybridIndex(vector_index=index, corpus=corpus)
 
 
 def main() -> None:

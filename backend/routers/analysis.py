@@ -192,7 +192,7 @@ async def _run_pipeline(job: Job, rfp_path: str, response_path: Optional[str], s
             emit({"event": "progress", "step": 4, "total_steps": 5,
                   "label": f"Scoring {total_criteria} criteria…", "pct": 50})
             scoring = await asyncio.to_thread(
-                score_extracted_gates, gates, combined_retriever, 3, None, "llama-3.3-70b-versatile", on_criterion
+                score_extracted_gates, gates, combined_retriever, 3, None, "meta-llama/llama-4-scout-17b-16e-instruct", on_criterion
             )
             criterion_results = scoring.get("criterion_results", [])
             present = sum(1 for c in criterion_results if c.get("status") == "PRESENT")

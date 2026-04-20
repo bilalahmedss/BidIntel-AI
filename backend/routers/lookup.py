@@ -128,7 +128,7 @@ async def search(body: SearchIn, user: dict = Depends(get_current_user)):
     co = Groq(api_key=os.getenv("GROQ_API_KEY"))
     resp = await asyncio.to_thread(
         co.chat.completions.create,
-        model="llama-3.3-70b-versatile",
+        model="meta-llama/llama-4-scout-17b-16e-instruct",
         messages=[
             {
                 "role": "system",

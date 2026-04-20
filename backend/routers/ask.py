@@ -229,7 +229,7 @@ async def send_message(pid: int, body: AskIn, token: str = Query(...)):
         yielded_chunks: list[str] = []
         try:
             stream = await create_streaming_completion(
-                model="llama-3.3-70b-versatile",
+                model="meta-llama/llama-4-scout-17b-16e-instruct",
                 messages=messages,
                 temperature=0.3,
                 max_tokens=1000,

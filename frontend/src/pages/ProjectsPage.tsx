@@ -46,6 +46,8 @@ export default function ProjectsPage() {
   const [errors, setErrors] = useState<CreateProjectErrors>({})
   const [rfpFile, setRfpFile] = useState<File | null>(null)
   const [responseFile, setResponseFile] = useState<File | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const createMutation = useMutation({
     mutationFn: (payload: FormData) => createProject(payload),
@@ -61,7 +63,15 @@ export default function ProjectsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteProject,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      setConfirmDeleteId(null)
+      setDeleteError(null)
+    },
+    onError: (error: any) => {
+      setDeleteError(error?.response?.data?.detail || 'Failed to delete project. Please try again.')
+      setConfirmDeleteId(null)
+    },
   })
 
   function updateField<K extends keyof CreateProjectForm>(key: K, value: CreateProjectForm[K]) {
@@ -207,6 +217,13 @@ export default function ProjectsPage() {
             <div className="ui-badge ui-badge-neutral">{projects.length} project{projects.length === 1 ? '' : 's'}</div>
           </div>
 
+          {deleteError && (
+            <div className="mt-4 surface-soft p-4 text-sm text-red-600">
+              {deleteError}
+              <button className="ml-3 underline" onClick={() => setDeleteError(null)}>Dismiss</button>
+            </div>
+          )}
+
           {isLoading ? (
             <div className="surface-soft mt-6 p-6 text-sm text-slate-500">Loading projects...</div>
           ) : projects.length === 0 ? (
@@ -232,20 +249,39 @@ export default function ProjectsPage() {
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button className="secondary-button" onClick={() => navigate(`/projects/${project.id}/workspace`)}>
                         Open project
                         <ArrowRight size={15} />
                       </button>
-                      <button
-                        className="ghost-button"
-                        onClick={() => {
-                          if (confirm('Delete this project?')) deleteMutation.mutate(project.id)
-                        }}
-                      >
-                        <Trash2 size={14} />
-                        Delete
-                      </button>
+
+                      {confirmDeleteId === project.id ? (
+                        <>
+                          <span className="text-sm text-red-600 font-medium">Delete project?</span>
+                          <button
+                            className="ghost-button text-red-600"
+                            disabled={deleteMutation.isPending}
+                            onClick={() => deleteMutation.mutate(project.id)}
+                          >
+                            {deleteMutation.isPending ? 'Deleting…' : 'Yes, delete'}
+                          </button>
+                          <button
+                            className="ghost-button"
+                            disabled={deleteMutation.isPending}
+                            onClick={() => setConfirmDeleteId(null)}
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          className="ghost-button"
+                          onClick={() => setConfirmDeleteId(project.id)}
+                        >
+                          <Trash2 size={14} />
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

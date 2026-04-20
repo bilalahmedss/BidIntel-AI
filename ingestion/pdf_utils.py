@@ -79,3 +79,34 @@ def extract_pdf_pages(pdf_path: str, ocr: bool = True) -> list[dict[str, Any]]:
         for i, page in enumerate(doc, start=1):
             pages.append({"page_number": i, "text": extract_page_text(page, ocr=ocr)})
     return pages
+
+
+def extract_pdf_as_markdown(pdf_path: str) -> str:
+    """
+    Layout-aware PDF extraction using pymupdf4llm.
+
+    Returns the full document as a single Markdown string.  Tables are
+    converted to GitHub-flavoured pipe-table syntax so that row/column
+    relationships survive chunking — a plain text extraction destroys this
+    structure, causing the LLM to misread compliance matrices.
+
+    Falls back to concatenated per-page OCR text (via ``extract_pdf_pages``)
+    when pymupdf4llm returns an empty result (e.g. purely scanned PDFs where
+    the text layer is absent).  Production deployments with many scanned PDFs
+    should swap this fallback for ``docling`` which runs layout analysis
+    before OCR.
+    """
+    try:
+        import pymupdf4llm  # lightweight; installed alongside pymupdf
+        md = pymupdf4llm.to_markdown(pdf_path)
+        if md and md.strip():
+            return md
+    except Exception:
+        pass  # fall through to OCR path
+
+    # OCR fallback — preserves page boundaries so the section chunker can
+    # still split on the --- PAGE N --- markers.
+    pages = extract_pdf_pages(pdf_path, ocr=True)
+    return "\n\n".join(
+        f"--- PAGE {p['page_number']} ---\n{p['text']}" for p in pages if p["text"].strip()
+    )

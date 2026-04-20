@@ -57,11 +57,33 @@ class PoisonPillSweepSchema(_BaseSchema):
         return self
 
 
-class BatchCriterionMatchSchema(_BaseSchema):
-    matched_signals: list[str] = Field(default_factory=list)
+class BatchCriterionBooleanSchema(_BaseSchema):
+    """
+    Boolean-per-signal schema for criterion scoring.
+
+    The LLM returns one explicit true/false per checklist signal rather than a
+    list of matched strings.  This decouples LLM *reasoning* from Python
+    *math*: the LLM decides what evidence it sees (boolean facts); Python
+    derives matched_signals / gap_signals deterministically from those booleans
+    — no fuzzy string normalisation required.
+
+    Example LLM output for one criterion:
+      {
+        "c1": {
+          "signals": {
+            "Provides detailed project timeline": true,
+            "Budget breakdown included":         false,
+            "Risk management plan attached":     true
+          }
+        }
+      }
+    """
+    signals: dict[str, bool] = Field(default_factory=dict)
+    # key   = checklist signal text (echoed verbatim from the prompt)
+    # value = True if the retrieved excerpts explicitly evidence the signal
 
 
-class BatchCriterionMatchesSchema(RootModel[dict[str, BatchCriterionMatchSchema]]):
+class BatchCriterionBooleansSchema(RootModel[dict[str, BatchCriterionBooleanSchema]]):
     pass
 
 
@@ -91,8 +113,8 @@ def validate_poison_pill_sweep_payload(data: dict) -> PoisonPillSweepSchema:
         _raise_validation_error("poison pill sweep", exc)
 
 
-def validate_batch_criterion_payload(data: dict) -> BatchCriterionMatchesSchema:
+def validate_batch_criterion_payload(data: dict) -> BatchCriterionBooleansSchema:
     try:
-        return BatchCriterionMatchesSchema.model_validate(data)
+        return BatchCriterionBooleansSchema.model_validate(data)
     except ValidationError as exc:
         _raise_validation_error("criterion batch", exc)

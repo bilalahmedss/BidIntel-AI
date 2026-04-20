@@ -26,6 +26,7 @@ from pydantic import PrivateAttr
 from sentence_transformers import SentenceTransformer
 
 from ingestion.pdf_utils import extract_pdf_pages
+from rag.retriever import HybridIndex
 
 PROJECTS_DIR = Path(__file__).resolve().parents[1] / "data" / "chroma_projects"
 _CHUNK_SIZE = 800
@@ -66,22 +67,28 @@ def _collection_name(project_id: int, kind: str) -> str:
     return f"project_{project_id}_{kind}"
 
 
-def build_project_index(project_id: int, pdf_path: str, kind: str) -> VectorStoreIndex:
+def build_project_index(project_id: int, pdf_path: str, kind: str) -> HybridIndex:
     """
     Index a project PDF into a persistent per-project ChromaDB collection.
 
     kind: 'rfp' or 'response'
     Rebuilds the collection from scratch if it already exists (re-upload case).
+
+    Returns a HybridIndex that bundles the VectorStoreIndex with the chunk
+    corpus so make_retriever() can activate BM25 keyword search alongside
+    vector search.
     """
     persist_path = PROJECTS_DIR / str(project_id)
     persist_path.mkdir(parents=True, exist_ok=True)
 
+    corpus: List[str] = []
     documents: List[Document] = []
     for p in extract_pdf_pages(pdf_path):
         text = p["text"].strip()
         if not text:
             continue
         for chunk in _chunk_text(text):
+            corpus.append(chunk)
             documents.append(Document(
                 text=chunk,
                 metadata={"page": p["page_number"], "source": kind, "project_id": project_id},
@@ -102,13 +109,17 @@ def build_project_index(project_id: int, pdf_path: str, kind: str) -> VectorStor
     collection = client.get_or_create_collection(_collection_name(project_id, kind))
     store = ChromaVectorStore(chroma_collection=collection)
     ctx = StorageContext.from_defaults(vector_store=store)
-    return VectorStoreIndex.from_documents(documents, storage_context=ctx, embed_model=embed)
+    index = VectorStoreIndex.from_documents(documents, storage_context=ctx, embed_model=embed)
+    return HybridIndex(vector_index=index, corpus=corpus)
 
 
-def load_project_index(project_id: int, kind: str) -> Optional[VectorStoreIndex]:
+def load_project_index(project_id: int, kind: str) -> Optional[HybridIndex]:
     """
     Load a previously built persistent index.
     Returns None if the index does not exist or is empty.
+
+    Recovers the BM25 corpus by querying ChromaDB for all stored documents —
+    this is necessary because the corpus list is not persisted to disk.
     """
     persist_path = PROJECTS_DIR / str(project_id)
     if not persist_path.exists():
@@ -121,7 +132,11 @@ def load_project_index(project_id: int, kind: str) -> Optional[VectorStoreIndex]
         if collection.count() == 0:
             return None
         store = ChromaVectorStore(chroma_collection=collection)
-        return VectorStoreIndex.from_vector_store(vector_store=store, embed_model=embed)
+        vector_index = VectorStoreIndex.from_vector_store(vector_store=store, embed_model=embed)
+        # Recover corpus for BM25 by pulling all stored documents from ChromaDB
+        all_docs = collection.get(include=["documents"])
+        corpus: List[str] = [d for d in (all_docs.get("documents") or []) if d and d.strip()]
+        return HybridIndex(vector_index=vector_index, corpus=corpus)
     except Exception:
         return None
 

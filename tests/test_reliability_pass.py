@@ -43,9 +43,16 @@ class ReliabilityPassTests(unittest.TestCase):
             validate_poison_pill_sweep_payload({"found": True, "reason": "missing clause"})
 
     @patch("scoring.criterion_scorer.create_json_completion")
-    def test_batch_scoring_filters_hallucinated_signals(self, mocked_completion):
+    def test_batch_scoring_boolean_signals(self, mocked_completion):
+        """
+        Verify the boolean-decoupling schema: the LLM emits explicit true/false
+        per checklist signal; Python derives matched/gap lists without any fuzzy
+        string normalisation.  A signal marked false is a gap; a signal absent
+        from the LLM output is also conservatively treated as a gap.
+        """
         mocked_completion.return_value = (
-            '{"c1": {"matched_signals": ["Timeline", "hallucinated"]}, "c2": {"matched_signals": []}}'
+            '{"c1": {"signals": {"Timeline": true, "Budget": false}}, '
+            ' "c2": {"signals": {"CVs": false}}}'
         )
         batch = [
             {
@@ -71,7 +78,7 @@ class ReliabilityPassTests(unittest.TestCase):
 
     @patch("scoring.criterion_scorer.create_json_completion")
     def test_batch_scoring_rejects_unknown_ids(self, mocked_completion):
-        mocked_completion.return_value = '{"unexpected": {"matched_signals": []}}'
+        mocked_completion.return_value = '{"unexpected": {"signals": {}}}'
         batch = [
             {
                 "criterion_id": "c1",
