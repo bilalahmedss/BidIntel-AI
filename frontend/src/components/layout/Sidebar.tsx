@@ -14,26 +14,39 @@ const links = [
 export default function Sidebar() {
   const { user, logout } = useAuth()
   return (
-    <aside className="w-56 shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col h-screen sticky top-0">
-      <div className="px-5 py-5 border-b border-slate-800">
-        <span className="text-indigo-400 font-bold text-lg tracking-tight">BidIntel AI</span>
+    <aside className="app-sidebar">
+      <div className="sidebar-brand">
+        <div className="brand-mark">
+          <span className="brand-mark-badge">BI</span>
+          <div>
+            <div className="text-lg">BidIntel AI</div>
+            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Enterprise workspace</div>
+          </div>
+        </div>
       </div>
-      <nav className="flex-1 py-4 space-y-1 px-2">
+
+      <nav className="sidebar-nav">
+        <div className="eyebrow px-3 pb-2">Navigation</div>
         {links.map(({ to, label, Icon }) => (
-          <NavLink key={to} to={to} end={to === '/'}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-              ${isActive ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'}`
-            }>
-            <Icon size={16} />{label}
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/'}
+            className={({ isActive }) => `nav-link ${isActive ? 'nav-link-active' : ''}`}
+          >
+            <Icon size={18} />
+            <span>{label}</span>
           </NavLink>
         ))}
       </nav>
-      <div className="px-4 py-4 border-t border-slate-800">
-        <div className="text-xs text-slate-400 truncate mb-2">{user?.full_name || user?.email}</div>
-        <button onClick={() => { void logout() }}
-          className="flex items-center gap-2 text-xs text-slate-500 hover:text-red-400 transition-colors">
-          <LogOut size={14} /> Sign out
+
+      <div className="sidebar-footer">
+        <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Signed in</div>
+        <div className="mt-2 text-sm font-bold text-slate-900">{user?.full_name || 'Bid team member'}</div>
+        <div className="mt-1 text-sm text-slate-500 break-all">{user?.email}</div>
+        <button onClick={() => { void logout() }} className="ghost-button mt-4 w-full justify-center">
+          <LogOut size={14} />
+          Sign out
         </button>
       </div>
     </aside>

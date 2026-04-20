@@ -1,167 +1,178 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getLookupDocs, deleteLookupDoc, uploadLookupDoc, searchLookup } from '../api/lookup'
-import ReactMarkdown from 'react-markdown'
-import { Search, Upload, Trash2, FileText } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { FileText, Search, Trash2, UploadCloud } from 'lucide-react'
+import { deleteLookupDoc, getLookupDocs, searchLookup, uploadLookupDoc } from '../api/lookup'
 import NoticePanel from '../components/governance/NoticePanel'
+import RichMarkdown from '../components/ui/RichMarkdown'
+import StatusBadge from '../components/ui/StatusBadge'
 import { CONFIDENTIALITY_NOTICE, HUMAN_REVIEW_NOTICE } from '../governance'
 
 export default function LookupPage() {
-  const qc = useQueryClient()
+  const queryClient = useQueryClient()
   const [query, setQuery] = useState('')
   const [result, setResult] = useState<any>(null)
-  const [searching, setSearch] = useState(false)
+  const [searching, setSearching] = useState(false)
   const [uploading, setUploading] = useState(false)
 
-  const { data: docs = [] } = useQuery({ queryKey: ['lookup', 'docs'], queryFn: getLookupDocs })
+  const { data: documents = [] } = useQuery({ queryKey: ['lookup', 'docs'], queryFn: getLookupDocs })
 
-  const deleteMut = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: (filename: string) => deleteLookupDoc(filename),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['lookup', 'docs'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['lookup', 'docs'] }),
   })
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleSearch(event: React.FormEvent) {
+    event.preventDefault()
     if (!query.trim()) return
-    setSearch(true)
+    setSearching(true)
     setResult(null)
+
     try {
       setResult(await searchLookup(query.trim()))
     } catch {
       alert('Search failed.')
     } finally {
-      setSearch(false)
+      setSearching(false)
     }
   }
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files || [])
+  async function handleUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files || [])
     if (!files.length) return
+
     setUploading(true)
     try {
-      for (const f of files) await uploadLookupDoc(f)
-      qc.invalidateQueries({ queryKey: ['lookup', 'docs'] })
+      for (const file of files) {
+        await uploadLookupDoc(file)
+      }
+      queryClient.invalidateQueries({ queryKey: ['lookup', 'docs'] })
     } catch {
       alert('Upload failed.')
     } finally {
       setUploading(false)
-      e.target.value = ''
+      event.target.value = ''
     }
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">LookUp - Company Knowledge Base</h1>
+    <div className="page">
+      <section className="page-header">
+        <div>
+          <div className="eyebrow">Lookup</div>
+          <h1 className="page-title">Search reusable company knowledge with structured results.</h1>
+          <p className="page-description">
+            Query uploaded reference material and review the summary plus supporting source excerpts in a readable, card-based layout.
+          </p>
+        </div>
+      </section>
 
-      <div className="space-y-3 mb-6">
-        <NoticePanel variant="confidential" title="Confidentiality Warning" compact>
+      <section className="space-y-3">
+        <NoticePanel variant="confidential" title="Confidentiality notice" compact>
           {CONFIDENTIALITY_NOTICE}
         </NoticePanel>
-        <NoticePanel variant="review" title="Human Review Required" compact>
+        <NoticePanel variant="review" title="Human review required" compact>
           {HUMAN_REVIEW_NOTICE}
         </NoticePanel>
-      </div>
+      </section>
 
-      <form onSubmit={handleSearch} className="flex gap-3 mb-6">
-        <div className="flex-1 relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Search certifications, past projects, capabilities..."
-            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 pl-10 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={searching || !query.trim()}
-          className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl text-sm font-medium transition-colors"
-        >
-          {searching ? 'Searching...' : 'Search'}
-        </button>
-      </form>
+      <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+        <section className="surface p-6">
+          <div className="eyebrow">Input pane</div>
+          <h2 className="section-title mt-2 text-xl">Search and upload</h2>
+          <p className="section-subtitle">Search indexed documents and expand the knowledge base from the same control pane.</p>
 
-      {result && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-6">
-          <h2 className="font-semibold text-sm text-slate-400 mb-3">Results for "{result.query}"</h2>
-          <div className="mb-4">
-            <NoticePanel variant="review" title="Review This Summary" compact>
-              Verify any capability, certification, or compliance claim against the original uploaded document excerpts before reuse.
-            </NoticePanel>
-          </div>
-          <div className="prose prose-invert prose-sm max-w-none text-slate-100">
-            <ReactMarkdown>{result.summary}</ReactMarkdown>
-          </div>
-          {result.chunks?.length > 0 && (
-            <details className="mt-4">
-              <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-300">
-                View {result.chunks.length} source excerpt{result.chunks.length !== 1 ? 's' : ''}
-              </summary>
-              <div className="mt-3 space-y-3">
-                {result.chunks.map((c: string, i: number) => (
-                  <div key={i} className="bg-slate-800 rounded p-3 text-xs text-slate-400 font-mono whitespace-pre-wrap">
-                    {c.slice(0, 500)}
-                    {c.length > 500 ? '...' : ''}
-                  </div>
-                ))}
+          <form onSubmit={handleSearch} className="mt-6 space-y-4">
+            <div className="field-stack">
+              <label className="field-label">Search query</label>
+              <div className="relative">
+                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search certifications, delivery experience, or capabilities..." className="pl-11" />
               </div>
-            </details>
-          )}
-        </div>
-      )}
-
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-1">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <h2 className="font-semibold text-sm mb-4 flex items-center gap-2">
-              <Upload size={14} /> Upload Documents
-            </h2>
-            <label
-              className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-6 cursor-pointer transition-colors ${
-                uploading ? 'border-indigo-600 bg-indigo-900/20' : 'border-slate-700 hover:border-indigo-600 hover:bg-indigo-900/10'
-              }`}
-            >
-              <Upload size={24} className="text-slate-500 mb-2" />
-              <span className="text-xs text-slate-400 text-center">{uploading ? 'Uploading and indexing...' : 'Click to upload PDF or TXT'}</span>
-              <span className="text-xs text-slate-600 mt-1">Company profiles, certifications, CVs, financials</span>
-              <input type="file" multiple accept=".pdf,.txt" onChange={handleUpload} className="hidden" disabled={uploading} />
-            </label>
-          </div>
-        </div>
-
-        <div className="col-span-2">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-800">
-              <h2 className="font-semibold text-sm flex items-center gap-2">
-                <FileText size={14} /> Knowledge Base ({docs.length} docs)
-              </h2>
             </div>
-            {docs.length === 0 ? (
-              <div className="px-5 py-8 text-slate-500 text-sm text-center">No documents uploaded yet.</div>
-            ) : (
-              <div className="divide-y divide-slate-800">
-                {docs.map((d: any) => (
-                  <div key={d.id} className="flex items-center justify-between px-5 py-3 hover:bg-slate-800/50 transition-colors">
-                    <div>
-                      <div className="text-sm text-slate-200 font-medium">{d.filename}</div>
-                      <div className="text-xs text-slate-500 mt-0.5">
-                        {(d.size_bytes / 1024).toFixed(1)} KB · {d.uploaded_at?.slice(0, 10)}
-                      </div>
+            <button className="primary-button w-full justify-center" type="submit" disabled={searching || !query.trim()}>
+              <Search size={15} />
+              {searching ? 'Searching...' : 'Search knowledge base'}
+            </button>
+          </form>
+
+          <label className="upload-zone mt-6 cursor-pointer">
+            <UploadCloud size={28} className="text-blue-600" />
+            <div className="text-base font-bold text-slate-950">{uploading ? 'Uploading and indexing...' : 'Upload PDF or TXT documents'}</div>
+            <div className="text-sm text-slate-500">Company profiles, certifications, CVs, financials, and past proposals.</div>
+            <input type="file" multiple accept=".pdf,.txt" className="hidden" onChange={handleUpload} disabled={uploading} />
+          </label>
+        </section>
+
+        <section className="space-y-6 min-w-0">
+          {result && (
+            <div className="surface p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="eyebrow">Insights pane</div>
+                  <h2 className="section-title mt-2 text-xl">Search summary</h2>
+                </div>
+                <StatusBadge tone="info">{result.query}</StatusBadge>
+              </div>
+
+              <div className="mt-5">
+                <RichMarkdown content={result.summary || ''} />
+              </div>
+
+              {result.chunks?.length > 0 && (
+                <div className="mt-6 space-y-3">
+                  <div className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Source excerpts</div>
+                  {result.chunks.map((chunk: string, index: number) => (
+                    <div key={index} className="surface-soft p-4">
+                      <RichMarkdown content={chunk.slice(0, 500) + (chunk.length > 500 ? '...' : '')} />
                     </div>
-                    <button
-                      onClick={() => {
-                        if (confirm('Remove this document?')) deleteMut.mutate(d.filename)
-                      }}
-                      className="text-slate-600 hover:text-red-400 transition-colors p-1.5"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="surface p-6">
+            <div className="page-header">
+              <div>
+                <div className="eyebrow">Indexed files</div>
+                <h2 className="section-title mt-2 text-xl">Knowledge base library</h2>
+              </div>
+              <StatusBadge tone="neutral">{documents.length} docs</StatusBadge>
+            </div>
+
+            {documents.length === 0 ? (
+              <div className="surface-soft mt-6 p-8 text-center">
+                <FileText size={30} className="mx-auto text-slate-400" />
+                <div className="mt-4 text-lg font-bold text-slate-950">No documents uploaded yet</div>
+                <p className="mt-2 text-sm text-slate-500">Use the left pane to upload material for search and analysis.</p>
+              </div>
+            ) : (
+              <div className="mt-6 space-y-4">
+                {documents.map((document: any) => (
+                  <div key={document.id} className="surface-soft p-5">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <div className="text-base font-bold text-slate-950">{document.filename}</div>
+                        <div className="mt-2 text-sm text-slate-500">
+                          {(document.size_bytes / 1024).toFixed(1)} KB · Uploaded {document.uploaded_at?.slice(0, 10)}
+                        </div>
+                      </div>
+                      <button
+                        className="ghost-button"
+                        onClick={() => {
+                          if (confirm('Remove this document?')) deleteMutation.mutate(document.filename)
+                        }}
+                      >
+                        <Trash2 size={14} />
+                        Remove
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
-        </div>
+        </section>
       </div>
     </div>
   )

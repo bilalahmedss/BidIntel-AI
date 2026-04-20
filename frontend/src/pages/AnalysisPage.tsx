@@ -1,348 +1,421 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { AlertCircle, Clock3, RefreshCw } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 import { getProjects } from '../api/projects'
+import { getSafetySummary } from '../api/safety'
 import { useAnalysis } from '../context/AnalysisContext'
-import { AlertCircle, Clock, RefreshCw } from 'lucide-react'
+import AssurancePanel from '../components/governance/AssurancePanel'
 import NoticePanel from '../components/governance/NoticePanel'
+import RichMarkdown from '../components/ui/RichMarkdown'
+import ScoreRing from '../components/ui/ScoreRing'
+import StatusBadge from '../components/ui/StatusBadge'
 import { CONFIDENTIALITY_NOTICE, HUMAN_REVIEW_NOTICE } from '../governance'
 
+const VERDICT_TONE: Record<string, 'neutral' | 'info' | 'success' | 'warn' | 'danger'> = {
+  Strong: 'success',
+  Competitive: 'info',
+  Borderline: 'warn',
+  Weak: 'warn',
+  'DO NOT BID': 'danger',
+}
+
+const CRITERION_TONE: Record<string, 'success' | 'danger' | 'warn' | 'neutral'> = {
+  PASS: 'success',
+  PRESENT: 'success',
+  FAIL: 'danger',
+  ABSENT: 'danger',
+}
+
+function formatElapsed(seconds: number) {
+  if (seconds < 60) return `${seconds}s`
+  return `${Math.floor(seconds / 60)}m ${seconds % 60}s`
+}
+
 export default function AnalysisPage() {
+  const [searchParams] = useSearchParams()
   const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: getProjects })
+  const { data: safetySummary } = useQuery({ queryKey: ['safety', 'summary'], queryFn: getSafetySummary })
   const { getJob, startJob, isRunning } = useAnalysis()
 
-  const [selectedPid, setSelectedPid] = useState<number | null>(null)
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null)
   const [scenario, setScenario] = useState('expected')
-  const [activeTab, setActiveTab] = useState('wps')
+  const [activeTab, setActiveTab] = useState<'summary' | 'criteria' | 'gaps' | 'risks'>('summary')
 
-  const job = selectedPid ? getJob(selectedPid) : undefined
-  const running = selectedPid ? isRunning(selectedPid) : false
+  const job = selectedProjectId ? getJob(selectedProjectId) : undefined
+  const running = selectedProjectId ? isRunning(selectedProjectId) : false
   const result = job?.result ?? null
 
   const scenarioData = result?.scenarios?.[scenario] || {}
-  const wps = scenarioData?.wps
   const verdict = scenarioData?.verdict || result?.wps_summary?.verdict
+  const criteria = result?.criterion_results || []
+  const metRequirements = criteria.filter((item: any) => ['PASS', 'PRESENT'].includes(item.status)).length
+  const totalRequirements = criteria.length
+  const requirementMatchPercent = totalRequirements ? Math.round((metRequirements / totalRequirements) * 100) : 0
+  const gaps = useMemo(
+    () =>
+      criteria.flatMap((item: any) =>
+        (item.gap_signals || []).map((gap: string) => ({
+          gate: item.gate_name,
+          criterion: item.name,
+          gap,
+          rationale: item.rationale,
+        })),
+      ),
+    [criteria],
+  )
+  const poisonPills = result?.poison_pills || []
+  const severePills = poisonPills.filter((pill: any) => ['CRITICAL', 'HIGH'].includes(pill.severity)).length
 
-  const VERDICT_COLORS: Record<string, string> = {
-    Strong: 'text-green-400',
-    Competitive: 'text-blue-400',
-    Borderline: 'text-yellow-400',
-    Weak: 'text-orange-400',
-    'DO NOT BID': 'text-red-400',
-  }
-
-  function formatElapsed(s: number) {
-    if (s < 60) return `${s}s`
-    return `${Math.floor(s / 60)}m ${s % 60}s`
-  }
+  useEffect(() => {
+    const requestedProjectId = Number(searchParams.get('projectId') || '')
+    if (requestedProjectId) {
+      setSelectedProjectId(requestedProjectId)
+    }
+  }, [searchParams])
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Analysis</h1>
-
-      <div className="space-y-3 mb-6">
-        <NoticePanel variant="confidential" title="Confidentiality Warning" compact>
-          {CONFIDENTIALITY_NOTICE}
-        </NoticePanel>
-        <NoticePanel variant="review" title="Human Review Required" compact>
-          {HUMAN_REVIEW_NOTICE}
-        </NoticePanel>
-      </div>
-
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-6">
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Project</label>
-            <select
-              value={selectedPid ?? ''}
-              onChange={e => {
-                setSelectedPid(Number(e.target.value) || null)
-                setActiveTab('wps')
-              }}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none"
-            >
-              <option value="">Select a project...</option>
-              {projects.map((p: any) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Financial Scenario</label>
-            <select
-              value={scenario}
-              onChange={e => setScenario(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none"
-            >
-              {['conservative', 'expected', 'optimistic'].map(s => (
-                <option key={s} value={s}>
-                  {s.charAt(0).toUpperCase() + s.slice(1)}
-                </option>
-              ))}
-            </select>
-          </div>
+    <div className="page">
+      <section className="page-header">
+        <div>
+          <div className="eyebrow">Analysis workspace</div>
+          <h1 className="page-title">Run bid scoring and review requirements with a clean audit trail.</h1>
+          <p className="page-description">
+            Select a project, choose the financial scenario, and review the scored requirements, risks, and supporting evidence in a structured results pane.
+          </p>
         </div>
-        <button
-          onClick={() => selectedPid && startJob(selectedPid, scenario)}
-          disabled={running || !selectedPid}
-          className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium px-6 py-2 rounded-lg transition-colors"
-        >
-          {running ? 'Running...' : result ? 'Re-run Analysis' : 'Run Analysis'}
-        </button>
-      </div>
+      </section>
 
-      {job && (job.status === 'queued' || job.status === 'running' || job.status === 'error') && (
-        <div className={`border rounded-xl p-5 mb-6 ${job.status === 'error' ? 'bg-red-950/40 border-red-800' : 'bg-slate-900 border-slate-800'}`}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              {job.status === 'error' ? (
-                <AlertCircle size={14} className="text-red-400" />
-              ) : (
-                <RefreshCw size={14} className="text-indigo-400 animate-spin" />
-              )}
-              <span className={`text-sm font-medium ${job.status === 'error' ? 'text-red-300' : 'text-slate-200'}`}>{job.label}</span>
-            </div>
-            <div className="flex items-center gap-1 text-xs text-slate-500">
-              <Clock size={11} />
-              <span>{formatElapsed(job.elapsed)}</span>
-            </div>
-          </div>
+      <div className="grid gap-6 xl:grid-cols-[370px_minmax(0,1fr)]">
+        <aside className="space-y-6 xl:sticky xl:top-[108px] xl:h-[calc(100vh-144px)] xl:overflow-y-auto">
+          <section className="surface p-6">
+            <div className="eyebrow">Input pane</div>
+            <h2 className="section-title mt-2 text-xl">Analysis controls</h2>
+            <p className="section-subtitle">Choose the project context and trigger a scoring run without changing any backend logic.</p>
 
-          {job.status !== 'error' && (
-            <>
-              <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-500 transition-all duration-500 rounded-full" style={{ width: `${job.pct}%` }} />
-              </div>
-              <div className="text-xs text-slate-500 mt-2">{job.pct}%</div>
-            </>
-          )}
-
-          {job.status === 'running' && job.elapsed > 45 && job.pct < 30 && (
-            <div className="mt-3 text-xs text-amber-400 bg-amber-900/20 rounded px-3 py-2">
-              Waiting for Groq API response - this can take 30-90 seconds per chunk. If stuck beyond 2 minutes, check your API quota.
-            </div>
-          )}
-
-          {job.status === 'error' && (
-            <div className="mt-2 text-xs text-red-400 font-mono whitespace-pre-wrap bg-red-950/40 rounded p-3">{job.error}</div>
-          )}
-        </div>
-      )}
-
-      {result && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-          <div className="px-6 py-5 border-b border-slate-800 flex items-center gap-8">
-            <div>
-              <div className="text-xs text-slate-400 mb-1">Win Probability Score</div>
-              <div className="text-4xl font-bold text-indigo-400">{wps?.toFixed(1) ?? '-'}</div>
-            </div>
-            <div>
-              <div className="text-xs text-slate-400 mb-1">Verdict</div>
-              <div className={`text-2xl font-bold ${VERDICT_COLORS[verdict] || 'text-slate-300'}`}>{verdict || '-'}</div>
-            </div>
-            <div className="flex gap-6 ml-auto">
-              {['conservative', 'expected', 'optimistic'].map(s => (
-                <button
-                  key={s}
-                  onClick={() => setScenario(s)}
-                  className={`text-center px-2 py-1 rounded transition-colors ${scenario === s ? 'bg-indigo-900/40' : 'hover:bg-slate-800'}`}
+            <div className="mt-6 space-y-4">
+              <div className="field-stack">
+                <label className="field-label">Project</label>
+                <select
+                  value={selectedProjectId ?? ''}
+                  onChange={(event) => {
+                    setSelectedProjectId(Number(event.target.value) || null)
+                    setActiveTab('summary')
+                  }}
                 >
-                  <div className="text-xs text-slate-500 capitalize">{s}</div>
-                  <div className="text-lg font-semibold text-slate-300">{result.scenarios?.[s]?.wps?.toFixed(1) ?? '-'}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex border-b border-slate-800 px-2">
-            {[
-              ['wps', 'Summary'],
-              ['criteria', 'Criteria'],
-              ['gaps', 'Gaps'],
-              ['pills', 'Poison Pills'],
-            ].map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => setActiveTab(key)}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === key ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          <div className="p-5">
-            {activeTab === 'wps' && (
-              <div className="space-y-4">
-                <NoticePanel variant="review" title="Reviewer Guidance" compact>
-                  {HUMAN_REVIEW_NOTICE}
-                </NoticePanel>
-                <div className="bg-slate-800 rounded-xl p-4">
-                  <div className="text-xs uppercase tracking-wide text-slate-500 mb-2">Scenario Explanation</div>
-                  <p className="text-sm text-slate-300 leading-relaxed">
-                    {scenarioData?.explanation || 'No scenario explanation available yet.'}
-                  </p>
-                  {scenarioData?.binding_constraint && (
-                    <p className="text-xs text-slate-500 mt-3">Binding constraint: {scenarioData.binding_constraint}</p>
-                  )}
-                </div>
-                {result.rfp_meta?.submission_rules?.length > 0 && (
-                  <div>
-                    <h3 className="font-medium text-sm mb-2 text-slate-300">Submission Rules</h3>
-                    <ul className="space-y-1">
-                      {result.rfp_meta.submission_rules.map((rule: string, i: number) => (
-                        <li key={i} className="text-sm text-slate-400">
-                          - {rule}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                  <option value="">Select a project</option>
+                  {projects.map((project: any) => (
+                    <option key={project.id} value={project.id}>
+                      {project.title}
+                    </option>
+                  ))}
+                </select>
               </div>
-            )}
 
-            {activeTab === 'criteria' && (
-              <div className="space-y-3">
-                {(result.criterion_results || []).map((c: any, i: number) => (
-                  <div
-                    key={i}
-                    className={`border rounded-lg p-4 ${
-                      c.status === 'PASS' || c.status === 'PRESENT' ? 'border-green-800 bg-green-900/10' : 'border-red-800 bg-red-900/10'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <span>{c.status === 'PASS' || c.status === 'PRESENT' ? 'PASS' : 'FAIL'}</span>
-                      <span className="font-medium text-sm text-slate-200">
-                        [{c.gate_name}] {c.name}
-                      </span>
-                      <span
-                        className={`ml-auto text-[11px] px-2 py-0.5 rounded-full ${
-                          c.evidence_strength === 'grounded'
-                            ? 'bg-emerald-900/40 text-emerald-300'
-                            : c.evidence_strength === 'limited'
-                              ? 'bg-amber-900/40 text-amber-300'
-                              : 'bg-slate-700 text-slate-300'
-                        }`}
-                      >
-                        {c.evidence_strength || 'none'}
-                      </span>
+              <div className="field-stack">
+                <label className="field-label">Financial scenario</label>
+                <select value={scenario} onChange={(event) => setScenario(event.target.value)}>
+                  {['conservative', 'expected', 'optimistic'].map((option) => (
+                    <option key={option} value={option}>
+                      {option.charAt(0).toUpperCase() + option.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button className="primary-button w-full justify-center" disabled={!selectedProjectId || running} onClick={() => selectedProjectId && startJob(selectedProjectId, scenario)}>
+                {running ? 'Running analysis...' : result ? 'Re-run analysis' : 'Run analysis'}
+              </button>
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <NoticePanel variant="confidential" title="Confidentiality notice" compact>
+              {CONFIDENTIALITY_NOTICE}
+            </NoticePanel>
+            <NoticePanel variant="review" title="Human review required" compact>
+              {HUMAN_REVIEW_NOTICE}
+            </NoticePanel>
+          </section>
+
+          <AssurancePanel summary={safetySummary} mode="analysis" />
+
+          {job && (job.status === 'queued' || job.status === 'running' || job.status === 'error') && (
+            <section className="surface p-6">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                  {job.status === 'error' ? <AlertCircle size={16} className="text-red-600" /> : <RefreshCw size={16} className="animate-spin text-slate-600" />}
+                  {job.label}
+                </div>
+                <div className="flex items-center gap-1 text-xs text-slate-500">
+                  <Clock3 size={12} />
+                  {formatElapsed(job.elapsed)}
+                </div>
+              </div>
+
+              {job.status !== 'error' && (
+                <>
+                  <div className="status-bar mt-5">
+                    <div className="status-fill" style={{ width: `${job.pct}%` }} />
+                  </div>
+                  <div className="mt-2 text-xs text-slate-500">{job.pct}% complete</div>
+                </>
+              )}
+
+              {job.status === 'running' && job.elapsed > 45 && job.pct < 30 && (
+                <div className="surface-soft mt-4 p-4 text-sm text-amber-700">
+                  Waiting for the external model response. Large RFPs can take 30 to 90 seconds per chunk.
+                </div>
+              )}
+
+              {job.status === 'error' && <div className="mt-4 whitespace-pre-wrap text-sm text-red-600">{job.error}</div>}
+            </section>
+          )}
+        </aside>
+
+        <section className="space-y-6 min-w-0">
+          {!result ? (
+            <div className="surface hero-card p-10 text-center">
+              <div className="mx-auto max-w-xl">
+                <div className="eyebrow justify-center">Insights pane</div>
+                <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-950">Analysis results will appear here.</h2>
+                <p className="mt-4 text-sm text-slate-500">
+                  Run a project analysis to render the win score, requirement coverage, risk cards, markdown-based summaries, and supporting evidence excerpts.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <section className="surface hero-card p-8">
+                <div className="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
+                  <div className="flex items-center justify-center">
+                    <ScoreRing value={metRequirements} total={totalRequirements} label="Requirements met" sublabel={`${requirementMatchPercent}% coverage`} />
+                  </div>
+
+                  <div className="space-y-6 min-w-0">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <div className="eyebrow">Results summary</div>
+                        <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">Scenario: {scenario.charAt(0).toUpperCase() + scenario.slice(1)}</h2>
+                        <p className="mt-2 text-sm text-slate-500">
+                          Structured scoring output with markdown-rendered insight cards, evidence excerpts, and compliance signals.
+                        </p>
+                      </div>
+                      <StatusBadge tone={VERDICT_TONE[verdict] || 'neutral'}>{verdict || 'No verdict'}</StatusBadge>
                     </div>
 
-                    {c.rationale && <p className="text-sm text-slate-300 mb-3 leading-relaxed">{c.rationale}</p>}
-
-                    {c.matched_signals?.length > 0 && (
-                      <div className="text-xs text-green-400 space-y-0.5">
-                        {c.matched_signals.map((s: string, j: number) => (
-                          <div key={j}>Matched: {s}</div>
-                        ))}
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div className="metric-card">
+                        <div className="metric-value text-slate-950">{scenarioData?.wps?.toFixed(1) ?? '-'}</div>
+                        <div className="metric-label">Win probability score</div>
                       </div>
-                    )}
-                    {c.gap_signals?.length > 0 && (
-                      <div className="text-xs text-red-400 space-y-0.5 mt-2">
-                        {c.gap_signals.map((s: string, j: number) => (
-                          <div key={j}>Gap: {s}</div>
-                        ))}
+                      <div className="metric-card">
+                        <div className="metric-value text-slate-950">{gaps.length}</div>
+                        <div className="metric-label">Open requirement gaps</div>
                       </div>
-                    )}
+                      <div className="metric-card">
+                        <div className="metric-value text-red-700">{severePills}</div>
+                        <div className="metric-label">High-severity risks</div>
+                      </div>
+                    </div>
 
-                    <div className="mt-3">
-                      <div className="text-[11px] uppercase tracking-wide text-slate-500 mb-2">Supporting Evidence</div>
-                      {c.evidence_snippets?.length > 0 ? (
-                        <div className="space-y-2">
-                          {c.evidence_snippets.map((snippet: string, j: number) => (
-                            <div key={j} className="bg-slate-800 rounded p-3 text-xs text-slate-400 leading-relaxed">
-                              {snippet}
+                    <div className="segmented-control">
+                      {['conservative', 'expected', 'optimistic'].map((option) => (
+                        <button
+                          key={option}
+                          onClick={() => setScenario(option)}
+                          className={`segmented-button ${scenario === option ? 'segmented-button-active' : ''}`}
+                        >
+                          {option.charAt(0).toUpperCase() + option.slice(1)} · {result.scenarios?.[option]?.wps?.toFixed(1) ?? '-'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="surface p-6">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <div className="eyebrow">Detailed findings</div>
+                    <h2 className="section-title mt-2 text-xl">Insights and evidence</h2>
+                  </div>
+                  <div className="segmented-control">
+                    {[
+                      ['summary', 'Summary'],
+                      ['criteria', 'Criteria'],
+                      ['gaps', 'Gaps'],
+                      ['risks', 'Poison pills'],
+                    ].map(([key, label]) => (
+                      <button
+                        key={key}
+                        onClick={() => setActiveTab(key as typeof activeTab)}
+                        className={`segmented-button ${activeTab === key ? 'segmented-button-active' : ''}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  {activeTab === 'summary' && (
+                    <div className="grid gap-4 lg:grid-cols-2">
+                      <div className="surface-soft p-5">
+                        <div className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Scenario explanation</div>
+                        <div className="mt-4">
+                          <RichMarkdown content={scenarioData?.explanation || 'No scenario explanation available yet.'} />
+                        </div>
+                        {scenarioData?.binding_constraint && (
+                          <div className="mt-4">
+                            <StatusBadge tone="warn">Primary driver: {scenarioData.binding_constraint}</StatusBadge>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="surface-soft p-5">
+                        <div className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Submission rules</div>
+                        {result.rfp_meta?.submission_rules?.length ? (
+                          <div className="mt-4">
+                            <RichMarkdown content={result.rfp_meta.submission_rules.map((rule: string) => `- ${rule}`).join('\n')} />
+                          </div>
+                        ) : (
+                          <p className="mt-4 text-sm text-slate-500">No submission rules were extracted from the current RFP parse.</p>
+                        )}
+                      </div>
+
+                      <div className="surface-soft p-5 lg:col-span-2">
+                        <NoticePanel variant="review" title="Reviewer guidance" compact>
+                          {HUMAN_REVIEW_NOTICE}
+                        </NoticePanel>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTab === 'criteria' && (
+                    <div className="grid gap-4">
+                      {criteria.map((criterion: any, index: number) => (
+                        <div key={index} className="surface-soft p-5">
+                          <div className="flex flex-wrap items-start gap-3">
+                            <StatusBadge tone={CRITERION_TONE[criterion.status] || 'neutral'}>{criterion.status || criterion.score || 'Unknown'}</StatusBadge>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-bold text-slate-950">
+                                [{criterion.gate_name}] {criterion.name}
+                              </div>
+                              {criterion.max_points !== undefined && criterion.max_points !== null && (
+                                <div className="mt-1 text-xs text-slate-500">
+                                  Score: {criterion.score ?? 0}/{criterion.max_points}
+                                </div>
+                              )}
+                            </div>
+                            {criterion.evidence_strength && <StatusBadge tone="info">{criterion.evidence_strength}</StatusBadge>}
+                          </div>
+
+                          {criterion.rationale && (
+                            <div className="mt-4">
+                              <RichMarkdown content={criterion.rationale} />
+                            </div>
+                          )}
+
+                          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                            <div className="surface-strong rounded-2xl border border-slate-100 p-4">
+                              <div className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Matched signals</div>
+                              {criterion.matched_signals?.length ? (
+                                <div className="mt-3">
+                                  <RichMarkdown content={criterion.matched_signals.map((signal: string) => `- ${signal}`).join('\n')} />
+                                </div>
+                              ) : (
+                                <p className="mt-3 text-sm text-slate-500">No positive signals were retrieved.</p>
+                              )}
+                            </div>
+
+                            <div className="surface-strong rounded-2xl border border-slate-100 p-4">
+                              <div className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Gap signals</div>
+                              {criterion.gap_signals?.length ? (
+                                <div className="mt-3">
+                                  <RichMarkdown content={criterion.gap_signals.map((signal: string) => `- ${signal}`).join('\n')} />
+                                </div>
+                              ) : (
+                                <p className="mt-3 text-sm text-emerald-700">No uncovered gap signals for this criterion.</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="mt-4">
+                            <div className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Supporting evidence</div>
+                            {criterion.evidence_snippets?.length ? (
+                              <div className="mt-3 space-y-3">
+                                {criterion.evidence_snippets.map((snippet: string, snippetIndex: number) => (
+                                  <div key={snippetIndex} className="surface-strong rounded-2xl border border-slate-100 p-4">
+                                    <RichMarkdown content={snippet} />
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="mt-3 text-sm text-slate-500">No supporting excerpt was retrieved for this criterion.</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {activeTab === 'gaps' && (
+                    <>
+                      {gaps.length === 0 ? (
+                        <div className="surface-soft p-6 text-sm text-emerald-700">No gaps detected. The current response covers all scored requirements.</div>
+                      ) : (
+                        <div className="grid gap-4 md:grid-cols-2">
+                          {gaps.map((gap: any, index: number) => (
+                            <div key={index} className="surface-soft p-5">
+                              <div className="flex flex-wrap gap-2">
+                                <StatusBadge tone="warn">{gap.gate}</StatusBadge>
+                                <StatusBadge tone="danger">Gap</StatusBadge>
+                              </div>
+                              <div className="mt-3 text-base font-bold text-slate-950">{gap.criterion}</div>
+                              <div className="mt-2 text-sm text-red-700">{gap.gap}</div>
+                              {gap.rationale && <div className="mt-3 text-sm text-slate-500">{gap.rationale}</div>}
                             </div>
                           ))}
                         </div>
-                      ) : (
-                        <div className="text-xs text-slate-500">Low-evidence result: no supporting excerpt was retrieved for this criterion.</div>
                       )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                    </>
+                  )}
 
-            {activeTab === 'gaps' &&
-              (() => {
-                const gaps = (result.criterion_results || []).flatMap((c: any) =>
-                  (c.gap_signals || []).map((g: string) => ({
-                    gate: c.gate_name,
-                    criterion: c.name,
-                    gap: g,
-                    rationale: c.rationale,
-                  })),
-                )
-                return gaps.length === 0 ? (
-                  <p className="text-green-400 text-sm">No gaps - your response covers all currently scored requirements.</p>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-yellow-400 text-sm mb-3">{gaps.length} gap(s) found</p>
-                    {gaps.map((g: any, i: number) => (
-                      <div key={i} className="bg-slate-800 rounded-lg p-3 text-sm">
-                        <span className="text-slate-500 text-xs">
-                          [{g.gate}] {g.criterion}
-                        </span>
-                        <div className="text-red-300 mt-1">Gap: {g.gap}</div>
-                        {g.rationale && <div className="text-xs text-slate-500 mt-2">{g.rationale}</div>}
-                      </div>
-                    ))}
-                  </div>
-                )
-              })()}
+                  {activeTab === 'risks' && (
+                    <>
+                      {poisonPills.length === 0 ? (
+                        <div className="surface-soft p-6 text-sm text-emerald-700">No poison pill clauses detected in the current analysis.</div>
+                      ) : (
+                        <div className="space-y-4">
+                          <NoticePanel variant="review" title="Legal and commercial review" compact>
+                            Poison-pill findings are AI-assisted risk signals. Confirm commercial and legal impact before using them in bid or no-bid decisions.
+                          </NoticePanel>
 
-            {activeTab === 'pills' &&
-              (() => {
-                const pills = result.poison_pills || []
-                if (!pills.length) return <p className="text-green-400 text-sm">No poison pill clauses detected.</p>
-                return (
-                  <div className="space-y-3">
-                    <NoticePanel variant="review" title="Human Review Required" compact>
-                      Poison-pill findings are AI-assisted risk signals. Legal/commercial review should confirm their impact before a bid/no-bid decision.
-                    </NoticePanel>
-                    <div className="flex gap-4 mb-4">
-                      {['CRITICAL', 'HIGH', 'MEDIUM'].map(severity => {
-                        const count = pills.filter((p: any) => p.severity === severity).length
-                        const color =
-                          severity === 'CRITICAL' ? 'text-red-400' : severity === 'HIGH' ? 'text-orange-400' : 'text-yellow-400'
-                        return (
-                          <div key={severity}>
-                            <span className={`font-bold ${color}`}>{count}</span>
-                            <span className="text-slate-400 text-xs ml-1">{severity}</span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                    {pills.map((p: any, i: number) => (
-                      <div key={i} className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span
-                            className={`text-xs font-bold px-2 py-0.5 rounded ${
-                              p.severity === 'CRITICAL'
-                                ? 'bg-red-900 text-red-300'
-                                : p.severity === 'HIGH'
-                                  ? 'bg-orange-900 text-orange-300'
-                                  : 'bg-yellow-900 text-yellow-300'
-                            }`}
-                          >
-                            {p.severity}
-                          </span>
-                          <span className="text-xs text-slate-400">Page {p.page_number}</span>
+                          {poisonPills.map((pill: any, index: number) => (
+                            <div key={index} className="surface-soft p-5">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <StatusBadge tone={pill.severity === 'CRITICAL' ? 'danger' : pill.severity === 'HIGH' ? 'warn' : 'info'}>
+                                  {pill.severity}
+                                </StatusBadge>
+                                <StatusBadge tone="neutral">Page {pill.page_number}</StatusBadge>
+                              </div>
+                              <div className="mt-4">
+                                <RichMarkdown content={pill.clause_text} />
+                              </div>
+                              {pill.reason && <div className="mt-3 text-sm text-slate-500">{pill.reason}</div>}
+                            </div>
+                          ))}
                         </div>
-                        <p className="text-sm text-slate-300">{p.clause_text}</p>
-                        {p.reason && <p className="text-xs text-slate-500 mt-2">{p.reason}</p>}
-                      </div>
-                    ))}
-                  </div>
-                )
-              })()}
-          </div>
-        </div>
-      )}
+                      )}
+                    </>
+                  )}
+                </div>
+              </section>
+            </>
+          )}
+        </section>
+      </div>
     </div>
   )
 }

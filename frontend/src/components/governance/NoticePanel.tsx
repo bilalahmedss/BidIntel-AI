@@ -5,13 +5,13 @@ type Variant = 'confidential' | 'review'
 
 const VARIANT_STYLES: Record<Variant, { wrap: string; icon: string; Icon: typeof ShieldAlert }> = {
   confidential: {
-    wrap: 'bg-amber-950/40 border-amber-800 text-amber-100',
-    icon: 'text-amber-400',
+    wrap: 'notice-panel notice-panel-warn',
+    icon: 'text-amber-600',
     Icon: ShieldAlert,
   },
   review: {
-    wrap: 'bg-sky-950/40 border-sky-800 text-sky-100',
-    icon: 'text-sky-400',
+    wrap: 'notice-panel notice-panel-info',
+    icon: 'text-sky-600',
     Icon: UserRoundCheck,
   },
 }
@@ -29,12 +29,14 @@ export default function NoticePanel({
 }) {
   const { wrap, icon, Icon } = VARIANT_STYLES[variant]
   return (
-    <div className={`border rounded-xl ${compact ? 'px-4 py-3' : 'px-4 py-4'} ${wrap}`}>
+    <div className={`${wrap} ${compact ? 'px-4 py-3' : 'px-5 py-4'}`}>
       <div className="flex items-start gap-3">
-        <Icon size={compact ? 16 : 18} className={`${icon} shrink-0 mt-0.5`} />
+        <div className="notice-panel-icon-wrap">
+          <Icon size={compact ? 15 : 16} className={`${icon} shrink-0`} />
+        </div>
         <div>
-          <div className="text-sm font-semibold">{title}</div>
-          <div className="text-xs leading-relaxed mt-1 text-slate-200">{children}</div>
+          <div className="text-sm font-semibold text-slate-900">{title}</div>
+          <div className="text-xs leading-relaxed mt-1 text-slate-600">{children}</div>
         </div>
       </div>
     </div>
