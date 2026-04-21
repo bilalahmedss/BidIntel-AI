@@ -11,6 +11,21 @@ BidIntel AI is a bid decision intelligence platform for proposal managers and bi
 - Provides a project-level AI chat assistant grounded in the RFP, uploaded response material, and company knowledge base.
 - Stores analyses, chat history, sections, users, and projects in SQLite.
 
+## Demos & Artefacts
+
+All demo material is in the [`docs/`](./docs) directory.
+
+| File | What it shows |
+|---|---|
+| [`demo-upload-and-analysis.mp4`](./docs/demo-upload-and-analysis.mp4) | Creating a project, uploading the RFP and bid response PDFs, and triggering analysis |
+| [`demo-analysis-results.mp4`](./docs/demo-analysis-results.mp4) | Completed analysis — WPS verdict, gate results, criterion scores, and poison-pill flags |
+| [`demo-ask-feature.mp4`](./docs/demo-ask-feature.mp4) | The grounded AI chat asking questions about the RFP, response, and company knowledge base |
+| [`security-audit-dashboard.jpeg`](./docs/security-audit-dashboard.jpeg) | Security monitoring dashboard — PII redaction, prompt-injection detection, unsafe-fallback tracking |
+| [`BidIntel-AI.pptx`](./docs/BidIntel-AI.pptx) | Project presentation slide deck |
+| [`architecture-diagram.png`](./docs/architecture-diagram.png) | Full system architecture — parsing → indexing → retrieval → scoring → WPS |
+| [`pipeline-refinements.md`](./docs/pipeline-refinements.md) | Engineering writeup for the three pipeline upgrades (parsing, retrieval, scoring) |
+| [`api-docs.png`](./docs/api-docs.png) | Swagger UI screenshot of all REST endpoints (auth, projects, sections, analysis, ask, lookup, safety) |
+
 ## Tech Stack
 
 | Layer | Technology |
