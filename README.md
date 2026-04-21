@@ -72,6 +72,34 @@ BidIntel-AI/
 |-- scoring/
 |-- tests/
 |-- scripts/
+|-- docs/
+|   |-- BidIntel-AI.pptx
+|   |-- api-docs.png
+|   |-- architecture-diagram.png
+|   |-- pipeline-refinements.md
+|   |-- security-audit-dashboard.jpeg
+|   |-- demo-upload-and-analysis.mp4
+|   |-- demo-analysis-results.mp4
+|   `-- demo-ask-feature.mp4
+|-- test_case_1/
+|   |-- RFP Planning Commission.pdf
+|   |-- Planning Commission Bid Response.pdf
+|   |-- cv_ali_raza_kazmi.pdf
+|   |-- cv_kashif_javed.pdf
+|   |-- financial_statement_impetus_fy2025.pdf
+|   |-- past_proposal_khyber_marble_granite.pdf
+|   `-- company_knowledge/
+|       |-- 01_TPS_Company_Profile_Capability_Statement.pdf
+|       |-- 02_TPS_Team_CVs.pdf
+|       |-- 03_TPS_Past_Project_Experience.pdf
+|       |-- 04_TPS_Certifications_and_Licenses.pdf
+|       |-- 05_TPS_Financial_Statements.pdf
+|       `-- 06_TPS_Legal_Registration_Compliance.pdf
+|-- data/                           # runtime-generated, not committed
+|   |-- bidintel.db
+|   |-- uploads/
+|   |-- company_brain/
+|   `-- chroma_kb/
 `-- requirements.txt
 ```
 
